@@ -1,27 +1,22 @@
 #IMPORTING LIBRARIES
 import pygame
 from sys import exit
-from os import environ
-import platform
 
 #IMPORTING FILES
-from settings import *
-from Tools.data_loading_tools import load_data, save_data
+from games.Timberman.code.Tools import load_data, save_data
+from games.Timberman.code.settings import *
 
 #LAUNCHER CLASS
-class Launcher:
+class Game:
 
     #INFORMATION ABOUT THE LAUNCHER
     def __str__(s):
         return'''
-        A launcher for Pygame applications.
+        Timberman the game!
         '''
     
     #CONSTRUCTOR
     def __init__(s):
-
-        #POINTING TO CORRECT VIDEO DRIVERS
-        s.checking_operating_system()
 
         #INITALIZING PYGAME
         pygame.init()
@@ -41,27 +36,6 @@ class Launcher:
         s.clock = pygame.time.Clock()
         s.fps = s.window_data['fps']
 
-    #METHOD FOR CHECKING OPERATING SYSTEM
-    def checking_operating_system(s):
-            s.system = platform.system() # RETURNS 'Linux', 'Darwin' (macOS) OR 'Windows'
-
-            if s.system == 'Linux':
-                # CHECKING IF IT'S A Raspberry Pi (Lite/No X11)
-                if 'arm' in platform.machine() or 'aarch64' in platform.machine():
-                    if not environ.get('DISPLAY'):
-                        environ['SDL_VIDEODRIVER'] = 'kmsdrm'
-                        environ['SDL_VIDEO_EGL_DRIVER'] = '/usr/lib/aarch64-linux-gnu/libEGL.so'
-                        print("Running on Raspberry Pi: KMSDRM Enabled")
-                    else:
-                        print("Running on Raspberry Pi: X11 detected, using default drivers")
-                else:
-                    print("Running on standard Linux (Desktop)")
-
-            elif s.system == 'Darwin':
-                print("Running on macOS: Drivers handled by OS")
-                
-            elif s.system == 'Windows':
-                print("Running on Windows")
     
     #METHOD FOR LOADING IN LAUNCHER DATA
     def loading_in_launcher_data(s):

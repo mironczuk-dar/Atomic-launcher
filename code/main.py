@@ -8,6 +8,11 @@ import platform
 from settings import *
 from Tools.data_loading_tools import load_data, save_data
 
+#IMPROTING STATES AND STATE MANAGERS
+from States.state_manager import StateManager
+from States.library import Library
+
+
 #LAUNCHER CLASS
 class Launcher:
 
@@ -21,7 +26,7 @@ class Launcher:
     def __init__(s):
 
         #POINTING TO CORRECT VIDEO DRIVERS
-        s.checking_operating_system()
+        s.system = s.checking_operating_system()
 
         #INITALIZING PYGAME
         pygame.init()
@@ -40,6 +45,10 @@ class Launcher:
         #INITALIZING CLOCK
         s.clock = pygame.time.Clock()
         s.fps = s.window_data['fps']
+
+        #CREATING STATE MANAGER AND STATES
+        s.state_manager = StateManager(s)
+        s.creating_states()
 
     #METHOD FOR CHECKING OPERATING SYSTEM
     def checking_operating_system(s):
@@ -67,6 +76,14 @@ class Launcher:
     def loading_in_launcher_data(s):
         s.window_data = load_data(WINDOW_DATA_PATH, DEFUALT_WINDOW_DATA)
         s.audio_data = load_data(AUDIO_DATA_PATH, DEFAULT_AUDIO_DATA)
+        s.theme_data = load_data(THEMES_DATA_PATH, DEFAULT_THEME_DATA)
+
+    #METHOD FOR CREATING STATE AND OS ELEMENTS (LIBRARY, STORE, SETTINGS, ...)
+    def creating_states(s):
+        s.state_manager.add_state('Library', Library(s))
+
+        #SETTING CURRENT STATE
+        s.state_manager.set_state('Library')
 
     #METHOD FOR SCALING MOUSE POSITTION
     def get_scaled_mouse_pos(s):
@@ -131,11 +148,17 @@ class Launcher:
         #SETTING THE FPS AND DELTA TIME
         s.delta_time = s.clock.tick(s.fps) / 1000
 
+        #UPDATING CURRENT STATE
+        s.state_manager.update(s.delta_time)
+
     #METHOD FOR DRAWING THE LAUNCHER
     def draw(s):
 
         #FILLING THE WINDOW BLACK
         s.window.fill((255,0,0))
+
+        #DRAWING THE CURRENT STATE
+        s.state_manager.draw(s.window)
 
         #TRANSFORMING THE WINDOW TO PROPER DISPLAY | S.WINDOW ---> S.DISPLAY
         scaled_window = pygame.transform.scale(s.window, (s.display.get_width(), s.display.get_height()))

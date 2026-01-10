@@ -58,7 +58,6 @@ class Launcher:
         s.game_process = None
         s.game_running = False
 
-
     #METHOD FOR CHECKING OPERATING SYSTEM
     def checking_operating_system(s):
         s.system = platform.system()
@@ -77,6 +76,7 @@ class Launcher:
         s.window_data = load_data(WINDOW_DATA_PATH, DEFUALT_WINDOW_DATA)
         s.audio_data = load_data(AUDIO_DATA_PATH, DEFAULT_AUDIO_DATA)
         s.theme_data = load_data(THEMES_DATA_PATH, DEFAULT_THEME_DATA)
+        s.performance_settings_data = load_data(PERFORMANCE_SETTINGS_DATA_PATH, DEFAULT_PERFORMANCE_SETTINGS_DATA)
 
     #METHOD FOR CREATING STATE AND OS ELEMENTS (LIBRARY, STORE, SETTINGS, ...)
     def creating_states(s):
@@ -108,6 +108,8 @@ class Launcher:
     def save(s):
         save_data(s.window_data, WINDOW_DATA_PATH)
         save_data(s.audio_data, AUDIO_DATA_PATH)
+        save_data(s.theme_data, THEMES_DATA_PATH)
+        save_data(s.performance_settings_data, PERFORMANCE_SETTINGS_DATA_PATH)
 
     #METHOD FOR HANDLING EVENTS
     def handling_events(s):
@@ -144,14 +146,20 @@ class Launcher:
 
     #METHOD FOR UPDATING THE LAUNCHER
     def update(s):
-
-        #SETTING THE FPS AND DELTA TIME
+        # FPS zależny od tego czy gra działa
         if s.game_running:
-            s.delta_time = s.clock.tick(30) / 1000
+            s.delta_time = s.clock.tick(s.performance_settings_data['decrease_launcher_fps_when_game_active']) / 1000
         else:
             s.delta_time = s.clock.tick(s.fps) / 1000
 
-        #UPDATING CURRENT STATE
+        # SPRAWDZANIE CZY GRA SIĘ ZAKOŃCZYŁA
+        if s.game_running and s.game_process is not None:
+            if s.game_process.poll() is not None:
+                # Gra się zakończyła
+                s.game_running = False
+                s.game_process = None
+
+        # Aktualizacja stanu
         s.state_manager.update(s.delta_time)
 
     #METHOD FOR DRAWING THE LAUNCHER

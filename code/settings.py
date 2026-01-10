@@ -9,7 +9,7 @@ from os.path import join, dirname, abspath
 BASE_DIR = dirname(dirname(abspath(__file__)))
 
 #SCREEN / WINDOW SETTINGS
-WINDOW_DATA_PATH = join(BASE_DIR, '..', 'data', 'screen_data.json')
+WINDOW_DATA_PATH = join(BASE_DIR, 'data', 'screen_data.json')
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 480
 DEFUALT_WINDOW_DATA = {
@@ -17,17 +17,24 @@ DEFUALT_WINDOW_DATA = {
     'height' : 480,
     'fullscreen' : False,
     'fps' : 60,
-    'show_fps' : False
+    'show_fps' : False,
 }
 
 #AUDIO DATA
-AUDIO_DATA_PATH = join(BASE_DIR, '..', 'data', 'audio_data.json')
+AUDIO_DATA_PATH = join(BASE_DIR, 'data', 'audio_data.json')
 DEFAULT_AUDIO_DATA = {
     'sound' : 1
 }
 
+#PERFORMANCE SETTINGS
+PERFORMANCE_SETTINGS_DATA_PATH = join(BASE_DIR, 'data', 'performance_settings_data.json')
+DEFAULT_PERFORMANCE_SETTINGS_DATA = {
+    'minimise_launcher_when_game_active' : True,
+    'decrease_launcher_fps_when_game_active' : 30
+}
+
 #THEMES DATA
-THEMES_DATA_PATH = join(BASE_DIR, '..', 'data', 'themes_data.json')
+THEMES_DATA_PATH = join(BASE_DIR, 'data', 'themes_data.json')
 DEFAULT_THEME_DATA = {
     'current_theme' : 'Dariusz'
 }

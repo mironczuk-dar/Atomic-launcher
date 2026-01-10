@@ -75,6 +75,8 @@ class Library(BaseState):
                 s.selected_index = min(s.selected_index + 1, len(s.filtered_games) - 1)
             elif keys[pygame.K_a]:
                 s.selected_index = max(0, s.selected_index - 1)
+            elif keys[pygame.K_RETURN]:
+                s.launch_game()
 
         # -------- SIDEBAR --------
         elif s.ui_focus == "sidebar":
@@ -200,6 +202,7 @@ class Library(BaseState):
                 )
 
     # --------------------------------------------------
+
     def draw_topbar(s, window):
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
 
@@ -264,8 +267,6 @@ class Library(BaseState):
             status_y + status_h // 2 - status_surf.get_height() // 2)
         )
 
-
-
     # ==================================================
     # LOGIC
     # ==================================================
@@ -283,55 +284,38 @@ class Library(BaseState):
 
         if is_windows:
             run_file = "[RUN]-Windows.bat"
+            # Zamień wywołanie bat na bezpośrednie pythonw
+            # Zakładamy, że gra jest plikiem Python lub exe
+            game_exec = os.path.join(game_dir, 'code', "main.py")  # przykładowo
+            if not os.path.exists(game_exec):
+                print(f"Brak pliku gry: {game_exec}")
+                return
+
+            proc = subprocess.Popen(
+                ["pythonw", game_exec],
+                cwd=game_dir
+            )
+
         elif is_linux:
             run_file = "[RUN]-linux.sh"
+            os.chmod(os.path.join(game_dir, run_file), 0o755)
+            proc = subprocess.Popen(
+                ["bash", run_file],
+                cwd=game_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
         else:
             print("Nieobsługiwany system operacyjny")
             return
 
-        run_path = os.path.join(game_dir, run_file)
+        s.launcher.game_process = proc
+        s.launcher.game_running = True
 
-        if not os.path.exists(run_path):
-            print(f"Brak pliku startowego: {run_path}")
-            return
-
-        try:
-            if is_windows:
-                # Windows – uruchamiamy .bat
-                proc = subprocess.Popen(
-                    [run_path],
-                    cwd=game_dir,
-                    shell=True
-                )
-            else:
-                # Linux – upewniamy się że plik jest wykonywalny
-                os.chmod(run_path, 0o755)
-                proc = subprocess.Popen(
-                    ["./" + run_file],
-                    cwd=game_dir
-                )
-
-            # Zapis procesu i oznaczenie, że gra działa
-            s.launcher.game_process = proc
-            s.launcher.game_running = True
-
+        if s.launcher.performance_settings_data['minimise_launcher_when_game_active']:
             pygame.display.iconify()
 
-            # Opcjonalnie: obniżamy priorytet procesu, żeby launcher nie spowalniał
-            try:
-                import psutil
-                p = psutil.Process(proc.pid)
-                if is_windows:
-                    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-                else:
-                    p.nice(10)  # Linux: +10 obniża priorytet
-            except Exception:
-                pass  # jeśli psutil nie jest zainstalowany, pomijamy
 
-            print(f"Uruchomiono grę: {game_name}")
-
-        except Exception as e:
-            print(f"Błąd przy uruchamianiu gry {game_name}: {e}")
 
     def try_reconnect(s):
         if s.reconnect_cooldown > 0:
@@ -383,5 +367,3 @@ class Library(BaseState):
                 ]
 
             s.selected_index = 0
-
-

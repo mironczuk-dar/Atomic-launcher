@@ -3,6 +3,7 @@ import pygame
 from sys import exit
 from os import environ
 import platform
+import socket
 
 #IMPORTING FILES
 from settings import *
@@ -25,8 +26,11 @@ class Launcher:
     #CONSTRUCTOR
     def __init__(s):
 
-        #POINTING TO CORRECT VIDEO DRIVERS
+        #CHECKING THE SYSTEM THE DEVICE IS RUNNING ON
         s.system = s.checking_operating_system()
+
+        #CHECKING INTERNET ACCESS
+        s.online_mode = s.checking_internet_connection()
 
         #INITALIZING PYGAME
         pygame.init()
@@ -54,6 +58,15 @@ class Launcher:
     def checking_operating_system(s):
         s.system = platform.system()
     
+    #METHOD FOR CHECKING INTERNET CONNECTION
+    def checking_internet_connection(s, timeout = 2):
+        try:
+            socket.setdefaulttimeout(timeout)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            return True
+        except OSError:
+            return False
+
     #METHOD FOR LOADING IN LAUNCHER DATA
     def loading_in_launcher_data(s):
         s.window_data = load_data(WINDOW_DATA_PATH, DEFUALT_WINDOW_DATA)

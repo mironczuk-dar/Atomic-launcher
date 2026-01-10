@@ -34,9 +34,11 @@ DEFAULT_THEME_DATA = {
 THEME_LIBRARY = {
     'Dariusz' : {'colour_1' : "#240040",
                  'colour_2' : "#FF891C",
-                 'colour_3' : "#41E9FF"},
+                 'colour_3' : "#41E9FF",
+                 'colour_4' : "#550096"},
 
     'High contrast' : {'colour_1' : "#0C0C0C",
                         'colour_2' : "#F9FF40",
-                        'colour_3' : "#4DACFF"},
+                        'colour_3' : "#4DACFF",
+                        'colour_4' : "#353535"}
 }

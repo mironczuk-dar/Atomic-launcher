@@ -61,8 +61,14 @@ class Library(BaseState):
     # INPUT
     # ==================================================
 
-    def handling_events(s):
+    def handling_events(s, events):
         keys = pygame.key.get_just_pressed()
+
+        if s.search_active:
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    s.handle_text_input(event)
+            return
 
         # -------- GAMES --------
         if s.ui_focus == "games":
@@ -96,7 +102,9 @@ class Library(BaseState):
             elif keys[pygame.K_RIGHT]:
                 s.ui_focus = "status"
             elif keys[pygame.K_RETURN]:
-                s.search_active = not s.search_active
+                s.search_active = True
+                s.search_text = ""
+                s.apply_search_filter()
 
         # -------- STATUS --------
         elif s.ui_focus == "status":
@@ -175,6 +183,11 @@ class Library(BaseState):
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         window.fill(theme['colour_1'])
 
+        if not s.filtered_games:
+            msg = s.game_font.render("NO GAMES FOUND", True, theme['colour_2'])
+            window.blit(msg, (WINDOW_WIDTH // 2 - msg.get_width() // 2, WINDOW_HEIGHT // 2))
+            return
+
         center_x = s.base_sidebar_w + (WINDOW_WIDTH - s.base_sidebar_w) // 2
         center_y = WINDOW_HEIGHT // 2
 
@@ -220,7 +233,12 @@ class Library(BaseState):
         bar_y = s.topbar_h // 2 - bar_h // 2
 
         # border kolor jeśli focus na search
-        search_border_color = theme['colour_4'] if s.ui_focus == 'topbar' else (180, 180, 180)
+        if s.ui_focus == 'topbar' and s.search_active:
+            search_border_color = theme['colour_3']
+        elif s.ui_focus == 'topbar':
+            search_border_color = theme['colour_4']
+        else:
+            search_border_color = theme['colour_2']
 
         pygame.draw.rect(
             window,
@@ -231,10 +249,24 @@ class Library(BaseState):
         )
 
         # tekst w search barze
-        text = s.search_text if s.search_text else "Search game..."
-        color = (220, 220, 220) if s.search_text else (140, 140, 140)
+        display_text = s.search_text
+        
+        # Jeśli szukanie jest aktywne, dodaj migający kursor
+        if s.search_active:
+            if pygame.time.get_ticks() % 1000 < 500:
+                display_text += "|"
+        
+        text_to_render = display_text if display_text else "Search game..."
+        
+        # Zmiana koloru tekstu, gdy szukanie jest aktywne
+        if s.search_active:
+            color = (255, 255, 255) # Biały przy pisaniu
+        elif s.search_text:
+            color = (220, 220, 220) # Jasny jeśli coś wpisano
+        else:
+            color = (140, 140, 140) # Szary dla placeholder'a
 
-        surf = s.search_font.render(text, True, color)
+        surf = s.search_font.render(text_to_render, True, color)
         window.blit(surf, (bar_x + 12, bar_y + bar_h // 2 - surf.get_height() // 2))
 
         # -------- STATUS BAR --------
@@ -314,8 +346,6 @@ class Library(BaseState):
 
         if s.launcher.performance_settings_data['minimise_launcher_when_game_active']:
             pygame.display.iconify()
-
-
 
     def try_reconnect(s):
         if s.reconnect_cooldown > 0:

@@ -27,7 +27,6 @@ class StateManager:
         """Aktualizuje logikę aktywnego stanu."""
         if s.active_state:
             s.active_state.update(delta_time)
-            s.active_state.handling_events()
 
     def draw(s, window):
         """Rysuje aktywny stan."""

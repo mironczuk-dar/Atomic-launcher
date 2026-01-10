@@ -113,7 +113,10 @@ class Launcher:
 
     #METHOD FOR HANDLING EVENTS
     def handling_events(s):
-        for event in pygame.event.get():
+        events = pygame.event.get()
+
+
+        for event in events:
 
             #CLOSING THE LAUNCHER IF WINDOW IS CLOSED
             if event.type == pygame.QUIT:
@@ -144,22 +147,25 @@ class Launcher:
                     pygame.quit()
                     exit()
 
+        #PASSING EVENTS TO THE CURRENT STATE
+        s.state_manager.handling_events(events)
+
     #METHOD FOR UPDATING THE LAUNCHER
     def update(s):
-        # FPS zależny od tego czy gra działa
+        
+        #LOWERING FPS IF THERE'S A GAME RUNNING
         if s.game_running:
             s.delta_time = s.clock.tick(s.performance_settings_data['decrease_launcher_fps_when_game_active']) / 1000
         else:
             s.delta_time = s.clock.tick(s.fps) / 1000
 
-        # SPRAWDZANIE CZY GRA SIĘ ZAKOŃCZYŁA
+        #CHECKING IF GAME HAS ENDED
         if s.game_running and s.game_process is not None:
             if s.game_process.poll() is not None:
-                # Gra się zakończyła
                 s.game_running = False
                 s.game_process = None
 
-        # Aktualizacja stanu
+        #UPDATING CURRENT STATE
         s.state_manager.update(s.delta_time)
 
     #METHOD FOR DRAWING THE LAUNCHER

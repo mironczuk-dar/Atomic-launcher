@@ -30,4 +30,5 @@ fi
 # ---------------------------
 
 echo "Starting DonutPi OS..."
+export DISPLAY=:0
 python3 code/main.py

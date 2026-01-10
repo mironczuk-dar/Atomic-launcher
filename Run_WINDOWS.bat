@@ -1,36 +1,43 @@
 @echo off
-echo Checking for Python...
+setlocal
 
-:: CHECKING IF PYTHON IS INSTALLED
+:: ALWAYS RUN FROM SCRIPT DIRECTORY
+cd /d "%~dp0"
+
+echo Checking for Python...
 where python >nul 2>nul
 if %errorlevel% neq 0 (
-    echo Python is not installed!
-    echo Please install Python and add it to PATH.
+    echo Python not found.
     pause
     exit /b 1
 )
 
-echo Python is installed.
+echo Checking for Git...
+where git >nul 2>nul
+if %errorlevel% neq 0 (
+    echo Git not found.
+    pause
+    exit /b 1
+)
 
-:: --- UPDATING ---
-:: CHECKING INTERNET CONNECTION (PING GOOGLE DNS)
+echo Verifying installations...
+echo Python and Git are installed.
+
+:: CHECK INTERNET
 ping -n 1 -w 1000 8.8.8.8 >nul
 if %errorlevel% equ 0 (
     echo Internet connection found. Checking for updates...
 
-    :: 1. UPDATING CODE FROM GITHUB
-    echo Pulling latest code from GitHub...
-    git pull origin main --no-rebase
+    if exist ".git" (
+        git pull origin main --no-rebase
+    ) else (
+        echo Not a git repository. Skipping git pull.
+    )
 
-    :: 2. UPDATING LIBRARIES
-    echo Updating libraries...
     python -m pip install --upgrade pygame-ce pytmx --quiet
-
-    echo Updates finished or already up to date.
 ) else (
     echo No internet connection. Skipping updates.
 )
-:: ---------------------------
 
 echo Starting DonutPi OS...
 python code\main.py

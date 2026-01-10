@@ -1,6 +1,8 @@
 # IMPORTING LIBRARIES
 import pygame
 import os
+import subprocess
+import sys
 
 # IMPORTING FILES
 from States.generic_state import BaseState
@@ -267,6 +269,69 @@ class Library(BaseState):
     # ==================================================
     # LOGIC
     # ==================================================
+
+    def launch_game(s):
+        if not s.filtered_games:
+            return
+
+        game_name = s.filtered_games[s.selected_index]
+        game_dir = os.path.join(GAMES_DIR, game_name)
+
+        # Wykrywanie systemu
+        is_windows = sys.platform.startswith("win")
+        is_linux = sys.platform.startswith("linux")
+
+        if is_windows:
+            run_file = "[RUN]-Windows.bat"
+        elif is_linux:
+            run_file = "[RUN]-linux.sh"
+        else:
+            print("Nieobsługiwany system operacyjny")
+            return
+
+        run_path = os.path.join(game_dir, run_file)
+
+        if not os.path.exists(run_path):
+            print(f"Brak pliku startowego: {run_path}")
+            return
+
+        try:
+            if is_windows:
+                # Windows – uruchamiamy .bat
+                proc = subprocess.Popen(
+                    [run_path],
+                    cwd=game_dir,
+                    shell=True
+                )
+            else:
+                # Linux – upewniamy się że plik jest wykonywalny
+                os.chmod(run_path, 0o755)
+                proc = subprocess.Popen(
+                    ["./" + run_file],
+                    cwd=game_dir
+                )
+
+            # Zapis procesu i oznaczenie, że gra działa
+            s.launcher.game_process = proc
+            s.launcher.game_running = True
+
+            pygame.display.iconify()
+
+            # Opcjonalnie: obniżamy priorytet procesu, żeby launcher nie spowalniał
+            try:
+                import psutil
+                p = psutil.Process(proc.pid)
+                if is_windows:
+                    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+                else:
+                    p.nice(10)  # Linux: +10 obniża priorytet
+            except Exception:
+                pass  # jeśli psutil nie jest zainstalowany, pomijamy
+
+            print(f"Uruchomiono grę: {game_name}")
+
+        except Exception as e:
+            print(f"Błąd przy uruchamianiu gry {game_name}: {e}")
 
     def try_reconnect(s):
         if s.reconnect_cooldown > 0:

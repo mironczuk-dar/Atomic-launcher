@@ -54,6 +54,11 @@ class Launcher:
         s.state_manager = StateManager(s)
         s.creating_states()
 
+        #GAME PROCESS
+        s.game_process = None
+        s.game_running = False
+
+
     #METHOD FOR CHECKING OPERATING SYSTEM
     def checking_operating_system(s):
         s.system = platform.system()
@@ -141,7 +146,10 @@ class Launcher:
     def update(s):
 
         #SETTING THE FPS AND DELTA TIME
-        s.delta_time = s.clock.tick(s.fps) / 1000
+        if s.game_running:
+            s.delta_time = s.clock.tick(30) / 1000
+        else:
+            s.delta_time = s.clock.tick(s.fps) / 1000
 
         #UPDATING CURRENT STATE
         s.state_manager.update(s.delta_time)

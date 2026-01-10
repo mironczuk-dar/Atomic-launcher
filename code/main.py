@@ -52,25 +52,22 @@ class Launcher:
 
     #METHOD FOR CHECKING OPERATING SYSTEM
     def checking_operating_system(s):
-            s.system = platform.system() # RETURNS 'Linux', 'Darwin' (macOS) OR 'Windows'
+        s.system = platform.system()
 
-            if s.system == 'Linux':
-                # CHECKING IF IT'S A Raspberry Pi (Lite/No X11)
-                if 'arm' in platform.machine() or 'aarch64' in platform.machine():
-                    if not environ.get('DISPLAY'):
+        if s.system == 'Linux':
+            # Sprawdzanie czy to architektura ARM (Raspberry Pi)
+            if 'arm' in platform.machine() or 'aarch64' in platform.machine():
+                if not environ.get('DISPLAY') and not environ.get('WAYLAND_DISPLAY'):
+                    try:
                         environ['SDL_VIDEODRIVER'] = 'kmsdrm'
-                        environ['SDL_VIDEO_EGL_DRIVER'] = '/usr/lib/aarch64-linux-gnu/libEGL.so'
-                        print("Running on Raspberry Pi: KMSDRM Enabled")
-                    else:
-                        print("Running on Raspberry Pi: X11 detected, using default drivers")
-                else:
-                    print("Running on standard Linux (Desktop)")
 
-            elif s.system == 'Darwin':
-                print("Running on macOS: Drivers handled by OS")
-                
-            elif s.system == 'Windows':
-                print("Running on Windows")
+                        print("Running on Raspberry Pi: KMSDRM Enabled")
+                    except Exception as e:
+                        print(f"KMSDRM failed to init, falling back: {e}")
+                else:
+                    print("Running on Raspberry Pi: Desktop environment detected")
+            else:
+                print("Running on standard Linux")
     
     #METHOD FOR LOADING IN LAUNCHER DATA
     def loading_in_launcher_data(s):

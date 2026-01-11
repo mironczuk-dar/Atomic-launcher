@@ -1,20 +1,27 @@
 #!/bin/bash
 
-echo "Checking for Python..."
+# Ustaw katalog launchera na ten, w którym znajduje się skrypt
+cd "$(dirname "$0")" || { echo "Nie mogę zmienić katalogu!"; exit 1; }
 
+echo "Current directory: $(pwd)"
+
+echo "Checking for Python..."
 if ! command -v python3 &> /dev/null; then
     echo "Python3 is not installed!"
     exit 1
 fi
 echo "Python is installed."
 
-# PRZECHODZIMY DO FOLDERU LAUNCHERA
-cd "/home/pi/Atomic-launcher"
-
 # --- UPDATING ---
 if ping -q -c 1 -W 1 8.8.8.8 >/dev/null; then
     echo "Internet connection found. Checking for updates..."
-    git pull origin main
+    
+    if [ ! -d ".git" ]; then
+        echo "Nie znaleziono repozytorium git w $(pwd)"
+    else
+        git pull origin main
+    fi
+
     sudo pip install --upgrade pygame-ce pytmx --break-system-packages --quiet
     echo "Updates finished or already up to date."
 else
@@ -22,11 +29,4 @@ else
 fi
 
 echo "Starting DonutPi OS..."
-
-if [ -z "$DISPLAY" ] && [ "$XDG_SESSION_TYPE" != "wayland" ]; then
-    echo "[System] Wykryto terminal (brak okien). Uruchamiam serwer X..."
-    exec startx /usr/bin/python3 /home/pi/Atomic-launcher/code/main.py
-else
-    echo "[System] Wykryto środowisko graficzne. Uruchamiam bezpośrednio..."
-    python3 code/main.py
-fi
+python3 code/main.py

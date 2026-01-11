@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import json
+import shutil
 from States.generic_state import BaseState
 from settings import GAMES_DIR, BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
 from UI.searchbar import SearchBar
@@ -57,13 +58,21 @@ class Library(BaseState):
         self.game_icons = {}
         self.refresh_library()
 
+        # ---------- BOTTOM BAR ACTIONS ----------
+        self.bottombar_actions = [
+            {"label": "Export Save", "callback": self.export_save_file, "color": (120, 255, 120)},
+            {"label": "Add to Favorites", "callback": self.add_to_favorites, "color": (80, 200, 255)},
+            {"label": "Uninstall", "callback": self.uninstall_game, "color": (255, 80, 80)},
+        ]
+        self.selected_bottombar_index = 0
+
     # ==================================================
     # INPUT
     # ==================================================
     def handling_events(self, events):
         keys = pygame.key.get_just_pressed()
 
-        # SEARCHBAR
+        # ---------- SEARCHBAR ----------
         exited_search = self.searchbar.handle_events(events)
         if exited_search:
             self.ui_focus = "content"
@@ -110,13 +119,13 @@ class Library(BaseState):
             if keys[pygame.K_TAB] or keys[pygame.K_ESCAPE]:
                 self.ui_focus = "content"
                 self.bottombar_visible = False
+            elif keys[pygame.K_UP]:
+                self.selected_bottombar_index = max(0, self.selected_bottombar_index - 1)
+            elif keys[pygame.K_DOWN]:
+                self.selected_bottombar_index = min(len(self.bottombar_actions) - 1, self.selected_bottombar_index + 1)
             elif keys[pygame.K_RETURN]:
-                game = self.filtered_games[self.selected_index]
-                success = self.launcher.installer.remove(game)
-                if success:
-                    self.refresh_library()
-                    self.ui_focus = "content"
-                    self.bottombar_visible = False
+                action = self.bottombar_actions[self.selected_bottombar_index]
+                action["callback"]()
 
     # ==================================================
     # UPDATE
@@ -176,25 +185,30 @@ class Library(BaseState):
             return
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
         game_id = self.filtered_games[self.selected_index]
-
         game_data = self.manifest.get(game_id, {})
-        author = game_data.get("author", "Unknown")
-        description = game_data.get("description", "")
-        version = game_data.get("version", "unknown")
 
         panel_h = 120
         pygame.draw.rect(window, theme['colour_2'], (self.sidebar.base_w, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h))
         pygame.draw.rect(window, theme['colour_4'], (self.sidebar.base_w, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h), 3)
 
-        author_text = self.bottombar_font.render(f"Author: {author}", True, theme['colour_3'])
-        desc_text = self.bottombar_font.render(description, True, theme['colour_3'])
-        version_text = self.bottombar_font.render(f"Version: {version}", True, theme['colour_3'])
-        uninstall_text = self.bottombar_font.render("Press ENTER to Uninstall", True, (255, 80, 80))
+        # Game info
+        author_text = self.bottombar_font.render(f"Author: {game_data.get('author', 'Unknown')}", True, theme['colour_3'])
+        desc_text = self.bottombar_font.render(game_data.get("description", ""), True, theme['colour_3'])
+        version_text = self.bottombar_font.render(f"Version: {game_data.get('version', 'unknown')}", True, theme['colour_3'])
 
         window.blit(author_text, (20 + self.sidebar.base_w, WINDOW_HEIGHT - panel_h + 10))
         window.blit(desc_text, (20 + self.sidebar.base_w, WINDOW_HEIGHT - panel_h + 40))
         window.blit(version_text, (20 + self.sidebar.base_w, WINDOW_HEIGHT - panel_h + 70))
-        window.blit(uninstall_text, (WINDOW_WIDTH - 500, WINDOW_HEIGHT - panel_h + 40))
+
+        # Bottombar actions
+        x_start = WINDOW_WIDTH - 300
+        y_start = WINDOW_HEIGHT - panel_h + 10
+        for i, action in enumerate(self.bottombar_actions):
+            color = action["color"]
+            if i == self.selected_bottombar_index and self.ui_focus == "bottombar":
+                color = theme['colour_4']
+            text = self.bottombar_font.render(action["label"], True, color)
+            window.blit(text, (x_start, y_start + i * 30))
 
     # ==================================================
     # LOGIC
@@ -261,3 +275,49 @@ class Library(BaseState):
         self.apply_search_filter(self.searchbar.text)
         if self.selected_index >= len(self.filtered_games) and self.filtered_games:
             self.selected_index = len(self.filtered_games) - 1
+
+    # ==================================================
+    # BOTTOM BAR ACTIONS
+    # ==================================================
+    def uninstall_game(self):
+        game = self.filtered_games[self.selected_index]
+        success = self.launcher.installer.remove(game)
+        if success:
+            self.refresh_library()
+            self.ui_focus = "content"
+            self.bottombar_visible = False
+
+    def add_to_favorites(self):
+        game = self.filtered_games[self.selected_index]
+        favorites_path = os.path.join(BASE_DIR, "favorites.json")
+        favorites = []
+
+        if os.path.exists(favorites_path):
+            try:
+                with open(favorites_path, "r", encoding="utf-8") as f:
+                    favorites = json.load(f)
+            except Exception as e:
+                print(f"[Favorites] Failed to load: {e}")
+
+        if game not in favorites:
+            favorites.append(game)
+            with open(favorites_path, "w", encoding="utf-8") as f:
+                json.dump(favorites, f, indent=4)
+            print(f"{game} added to favorites!")
+
+    def export_save_file(self):
+        game = self.filtered_games[self.selected_index]
+        game_dir = os.path.join(GAMES_DIR, game)
+        save_dir = os.path.join(BASE_DIR, "exports")
+        os.makedirs(save_dir, exist_ok=True)
+
+        save_file = os.path.join(game_dir, "save.json")
+        if os.path.exists(save_file):
+            dest = os.path.join(save_dir, f"{game}_save.json")
+            try:
+                shutil.copy2(save_file, dest)
+                print(f"Save exported to {dest}")
+            except Exception as e:
+                print(f"Export failed: {e}")
+        else:
+            print("No save file found for this game.")

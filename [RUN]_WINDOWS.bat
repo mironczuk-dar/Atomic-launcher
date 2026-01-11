@@ -1,11 +1,13 @@
 @echo off
 REM ==========================
-REM Run.bat for Windows
+REM [RUN]_WINDOWS.bat
 REM ==========================
 
-echo Checking for Python...
+REM --- PRZECHODZIMY DO KATALOGU, W KTÓRYM JEST SKRYPT ---
+cd /d "%~dp0"
+echo Current directory: %CD%
 
-REM --- CHECK IF PYTHON IS INSTALLED ---
+REM --- SPRAWDZENIE PYTHONA ---
 where python >nul 2>nul
 IF %ERRORLEVEL% NEQ 0 (
     echo Python is not installed!
@@ -15,27 +17,27 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 echo Python is installed.
 
-REM --- CHANGE TO LAUNCHER DIRECTORY ---
-cd /d "%~dp0"
-
-REM --- CHECK INTERNET CONNECTION ---
+REM --- SPRAWDZENIE INTERNETU ---
 ping -n 1 8.8.8.8 >nul
 IF %ERRORLEVEL% EQU 0 (
     echo Internet connection found. Checking for updates...
-    
-    REM --- PULL LATEST CODE FROM GITHUB ---
-    git pull origin main
 
-    REM --- UPDATE PYTHON LIBRARIES ---
+    REM --- SPRAWDZENIE CZY TO JEST REPOZYTORIUM GIT ---
+    if exist ".git" (
+        git pull origin main
+    ) ELSE (
+        echo No Git repository found. Skipping update.
+    )
+
+    REM --- AKTUALIZACJA PAKIETÓW ---
     python -m pip install --upgrade pygame-ce pytmx >nul
     echo Updates finished or already up to date.
 ) ELSE (
     echo No internet connection. Skipping updates.
 )
 
+REM --- URUCHAMIANIE GRY ---
 echo Starting DonutPi OS...
-
-REM --- LAUNCH THE GAME ---
 python code\main.py
 
 pause

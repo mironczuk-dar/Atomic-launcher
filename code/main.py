@@ -12,6 +12,7 @@ from Tools.data_loading_tools import load_data, save_data
 #IMPROTING STATES AND STATE MANAGERS
 from States.state_manager import StateManager
 from States.library import Library
+from States.store import Store
 
 
 #LAUNCHER CLASS
@@ -81,6 +82,7 @@ class Launcher:
     #METHOD FOR CREATING STATE AND OS ELEMENTS (LIBRARY, STORE, SETTINGS, ...)
     def creating_states(s):
         s.state_manager.add_state('Library', Library(s))
+        s.state_manager.add_state('Store', Store(s))
 
         #SETTING CURRENT STATE
         s.state_manager.set_state('Library')

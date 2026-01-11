@@ -7,11 +7,12 @@ from os.path import join, dirname, abspath
 # dirname(...)      -> .../Atomic launcher/code
 # dirname(dirname(...)) -> .../Atomic launcher (ROOT)
 BASE_DIR = dirname(dirname(abspath(__file__)))
+GAMES_DIR = join(BASE_DIR, 'games')
 
 #SCREEN / WINDOW SETTINGS
 WINDOW_DATA_PATH = join(BASE_DIR, 'data', 'screen_data.json')
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 480
+WINDOW_WIDTH = 1600
+WINDOW_HEIGHT = 960
 DEFUALT_WINDOW_DATA = {
     'width' : 800,
     'height' : 480,

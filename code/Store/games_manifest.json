@@ -1,0 +1,21 @@
+{
+  "space_invaders": {
+    "name": "Space Invaders",
+    "author": "Some Dude",
+    "repo": "https://github.com/TwojUser/space-invaders.git",
+    "branch": "main",
+    "version": "1.0.2",
+    "icon": "space_invaders.png",
+    "description": "A game about space!"
+  },
+  "snake_advanced": {
+    "name": "Snake Advanced",
+    "author": "Some Dude2",
+    "repo": "https://github.com/TwojUser/snake-advanced.git",
+    "branch": "main",
+    "version": "0.9.1",
+    "icon": "snake.png",
+    "description": "Don't eat your own tail..."
+
+  }
+}

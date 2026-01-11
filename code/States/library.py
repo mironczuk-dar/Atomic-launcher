@@ -6,394 +6,255 @@ import sys
 
 # IMPORTING FILES
 from States.generic_state import BaseState
-from settings import BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
-
-# POINTING TO THE GAMES FOLDER
-GAMES_DIR = os.path.join(BASE_DIR, 'games')
+from settings import GAMES_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
+from UI.searchbar import SearchBar
+from UI.game_icon import GameIcon
 
 
 class Library(BaseState):
-    def __init__(s, launcher):
+    def __init__(self, launcher):
         super().__init__(launcher)
 
         # ---------- UI FOCUS ----------
-        # games | sidebar | topbar | status
-        s.ui_focus = "games"
+        # content | sidebar | topbar | status
+        self.ui_focus = "content"
 
         # ---------- GAMES ----------
-        s.games_list = [
+        self.games_list = [
             name for name in os.listdir(GAMES_DIR)
             if os.path.isdir(os.path.join(GAMES_DIR, name))
         ]
-        s.selected_index = 0
+        self.filtered_games = self.games_list.copy()
+        self.selected_index = 0
+
+        # ---------- UI ----------
+        self.searchbar = SearchBar(
+            launcher,
+            on_change=self.apply_search_filter
+        )
 
         # ---------- FONTS ----------
-        s.game_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.06), bold=True)
-        s.sidebar_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.05), bold=True)
-        s.internet_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.02), bold=True)
+        self.game_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.06))
+        self.internet_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.02), bold=True)
 
-        # ---------- SIDEBAR ----------
-        s.sidebar_index = 0
-        s.base_sidebar_w = int(WINDOW_WIDTH * 0.1)
-        s.expanded_sidebar_w = int(WINDOW_WIDTH * 0.4)
-        s.current_sidebar_w = s.base_sidebar_w
-
-        # ---------------- TOP BAR ----------------
-        s.topbar_h = int(WINDOW_HEIGHT * 0.1)
-        s.search_active = False
-        s.search_text = ""
-        s.filtered_games = s.games_list.copy()
-
-        s.search_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.035))
+        # ---------- TOP BAR ----------
+        self.topbar_h = int(WINDOW_HEIGHT * 0.1)
 
         # ---------- INTERNET ----------
-        s.reconnect_cooldown = 0.0
+        self.reconnect_cooldown = 0.0
 
         # ---------- ICONS ----------
-        s.icon_w = int(WINDOW_WIDTH * 0.2)
-        s.spacing = 40
-        s.scroll_speed = 2
-        s.current_scroll = 0
-        s.icons = {}
-        s.load_game_assets()
+        self.icon_w = int(WINDOW_WIDTH * 0.2)
+        self.spacing = 40
+        self.scroll_speed = 6
+        self.current_scroll = 0
+
+        # ---------- ICON OBJECTS ----------
+        self.icon_group = pygame.sprite.Group()
+        self.game_icons = {}
+
+        for game in self.games_list:
+            icon = GameIcon(
+                launcher=self.launcher,
+                groups=self.icon_group,
+                game_id=game,
+                size=self.icon_w,
+                source="library",
+            )
+            self.game_icons[game] = icon
 
     # ==================================================
     # INPUT
     # ==================================================
 
-    def handling_events(s, events):
+    def handling_events(self, events):
         keys = pygame.key.get_just_pressed()
 
-        if s.search_active:
-            for event in events:
-                if event.type == pygame.KEYDOWN:
-                    s.handle_text_input(event)
+        exited_search = self.searchbar.handle_events(events)
+        if exited_search:
+            self.ui_focus = "content"
+            return
+        if self.searchbar.active:
             return
 
-        # -------- GAMES --------
-        if s.ui_focus == "games":
-            if keys[pygame.K_UP]:
-                s.ui_focus = "topbar"
-            elif keys[pygame.K_LEFT]:
-                if s.selected_index == 0: s.ui_focus = "sidebar"
-                else: s.selected_index -= 1
-            elif keys[pygame.K_RIGHT]:
-                s.selected_index = min(s.selected_index + 1, len(s.filtered_games) - 1)
-            elif keys[pygame.K_a]:
-                s.selected_index = max(0, s.selected_index - 1)
-            elif keys[pygame.K_RETURN]:
-                s.launch_game()
+        initial_focus = self.ui_focus
+        super().handling_events(events)
 
-        # -------- SIDEBAR --------
-        elif s.ui_focus == "sidebar":
-            if keys[pygame.K_RIGHT]:
-                s.ui_focus = "games"
-            elif keys[pygame.K_DOWN]:
-                s.sidebar_index = (s.sidebar_index + 1) % len(s.sidebar_options)
-            elif keys[pygame.K_UP]:
-                s.sidebar_index = (s.sidebar_index - 1) % len(s.sidebar_options)
-            elif keys[pygame.K_RETURN]:
-                s.execute_sidebar_action()
+        if initial_focus != self.ui_focus:
+            return
+
+        # -------- CONTENT --------
+        if self.ui_focus == "content":
+            if keys[pygame.K_UP]:
+                self.ui_focus = "topbar"
+            elif keys[pygame.K_LEFT]:
+                if self.selected_index > 0:
+                    self.selected_index -= 1
+                else:
+                    self.ui_focus = "sidebar"
+            elif keys[pygame.K_RIGHT]:
+                if self.filtered_games:
+                    self.selected_index = min(
+                        self.selected_index + 1,
+                        len(self.filtered_games) - 1
+                    )
 
         # -------- TOP BAR --------
-        elif s.ui_focus == "topbar":
+        elif self.ui_focus == "topbar":
             if keys[pygame.K_DOWN]:
-                s.ui_focus = "games"
+                self.ui_focus = "content"
             elif keys[pygame.K_RIGHT]:
-                s.ui_focus = "status"
+                self.ui_focus = "status"
             elif keys[pygame.K_RETURN]:
-                s.search_active = True
-                s.search_text = ""
-                s.apply_search_filter()
+                self.searchbar.active = True
 
         # -------- STATUS --------
-        elif s.ui_focus == "status":
+        elif self.ui_focus == "status":
             if keys[pygame.K_LEFT]:
-                s.ui_focus = "topbar"
+                self.ui_focus = "topbar"
+            elif keys[pygame.K_DOWN]:
+                self.ui_focus = "content"
             elif keys[pygame.K_RETURN]:
-                s.try_reconnect()
+                self.try_reconnect()
 
     # ==================================================
     # UPDATE
     # ==================================================
 
-    def update(s, delta_time):
-        target_scroll = max(0, s.selected_index)
-        s.current_scroll += (target_scroll - s.current_scroll) * s.scroll_speed * delta_time
+    def update(self, delta_time):
+        super().update(delta_time)
 
-        target_w = s.expanded_sidebar_w if s.ui_focus == "sidebar" else s.base_sidebar_w
-        s.current_sidebar_w += (target_w - s.current_sidebar_w) * 12 * delta_time
+        # smooth scroll
+        self.current_scroll += (
+            self.selected_index - self.current_scroll
+        ) * self.scroll_speed * delta_time
 
-        s.reconnect_cooldown = max(0, s.reconnect_cooldown - delta_time)
+        self.reconnect_cooldown = max(0, self.reconnect_cooldown - delta_time)
 
     # ==================================================
     # DRAW
     # ==================================================
 
-    def draw(s, window):
-        s.drawing_game_icons(window)
-        s.draw_topbar(window)
-        s.drawing_sidebar(window)
+    def draw(self, window):
+        self.draw_game_icons(window)
+        self.draw_topbar(window)
+
+        self.searchbar.draw(
+            window,
+            focused=self.ui_focus == "topbar"
+        )
+
+        super().draw(window)  # sidebar
 
     # --------------------------------------------------
 
-    def drawing_sidebar(s, window):
-        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
-
-        s.sidebar_options = list(s.launcher.state_manager.states.keys())
-        if not s.sidebar_options:
-            return
-
-        pygame.draw.rect(
-            window,
-            theme['colour_2'],
-            (0, 0, int(s.current_sidebar_w), WINDOW_HEIGHT)
-        )
-
-        pygame.draw.line(
-            window,
-            theme['colour_3'],
-            (int(s.current_sidebar_w), 0),
-            (int(s.current_sidebar_w), WINDOW_HEIGHT),
-            4
-        )
-
-        width_diff = s.expanded_sidebar_w - s.base_sidebar_w
-        progress = (s.current_sidebar_w - s.base_sidebar_w) / max(1, width_diff)
-        progress = max(0.0, min(1.0, progress))
-        if progress < 0.05:
-            return
-
-        section_h = WINDOW_HEIGHT / len(s.sidebar_options)
-
-        for i, state in enumerate(s.sidebar_options):
-            selected = (s.ui_focus == "sidebar" and i == s.sidebar_index)
-            color = theme['colour_3'] if selected else (220, 220, 220)
-
-            text = s.sidebar_font.render(state.upper(), True, color).convert_alpha()
-            text.set_alpha(int(progress * 255))
-
-            x = 30
-            y = section_h * i + section_h / 2 - text.get_height() / 2
-            window.blit(text, (x, y))
-
-    # --------------------------------------------------
-
-    def drawing_game_icons(s, window):
-        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+    def draw_game_icons(self, window):
+        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
         window.fill(theme['colour_1'])
 
-        if not s.filtered_games:
-            msg = s.game_font.render("NO GAMES FOUND", True, theme['colour_2'])
-            window.blit(msg, (WINDOW_WIDTH // 2 - msg.get_width() // 2, WINDOW_HEIGHT // 2))
+        if not self.filtered_games:
+            msg = self.game_font.render("NO GAMES FOUND", True, theme['colour_2'])
+            window.blit(
+                msg,
+                (WINDOW_WIDTH // 2 - msg.get_width() // 2,
+                 WINDOW_HEIGHT // 2)
+            )
             return
 
-        center_x = s.base_sidebar_w + (WINDOW_WIDTH - s.base_sidebar_w) // 2
+        center_x = self.sidebar.current_w + (WINDOW_WIDTH - self.sidebar.current_w) // 2 -100
         center_y = WINDOW_HEIGHT // 2
 
-        for i, game in enumerate(s.filtered_games):
-            offset = (i - s.current_scroll) * (s.icon_w + s.spacing)
-            x = center_x - s.icon_w // 2 + offset
-            y = center_y - s.icon_w // 2
+        for i, game in enumerate(self.filtered_games):
+            icon = self.game_icons.get(game)
+            if not icon:
+                continue
 
-            if i == s.selected_index and s.ui_focus == "games":
-                pygame.draw.rect(
-                    window,
-                    theme['colour_3'],
-                    (x - 8, y - 8, s.icon_w + 16, s.icon_w + 16),
-                    border_radius=10
-                )
+            offset = (i - self.current_scroll) * (self.icon_w + self.spacing)
+            x = center_x + offset
+            y = center_y
 
-            window.blit(s.icons[game], (x, y))
+            icon.set_position(x, y)
+            icon.set_selected(
+                i == self.selected_index and self.ui_focus == "content"
+            )
+            icon.draw(window)
 
-            if i == s.selected_index:
+            if i == self.selected_index and self.ui_focus == 'content':
                 name = game.replace("_", " ").upper()
-                text = s.game_font.render(name, True, theme['colour_3'])
+                text = self.game_font.render(name, True, theme['colour_3'])
                 window.blit(
                     text,
-                    (x + s.icon_w // 2 - text.get_width() // 2, y - 55)
+                    (x - text.get_width() // 2,
+                     y - self.icon_w // 2 - 80)
                 )
 
     # --------------------------------------------------
 
-    def draw_topbar(s, window):
-        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+    def draw_topbar(self, window):
+        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
 
-        # -------- BACKGROUND --------
         pygame.draw.rect(
             window,
             theme['colour_1'],
-            pygame.Rect(0, 0, WINDOW_WIDTH, s.topbar_h)
+            (0, 0, WINDOW_WIDTH, self.topbar_h)
         )
 
-        # -------- SEARCH BAR --------
-        bar_w = int(WINDOW_WIDTH * 0.5)
-        bar_h = int(s.topbar_h * 0.55)
-        bar_x = WINDOW_WIDTH // 2 - bar_w // 2
-        bar_y = s.topbar_h // 2 - bar_h // 2
-
-        # border kolor jeśli focus na search
-        if s.ui_focus == 'topbar' and s.search_active:
-            search_border_color = theme['colour_3']
-        elif s.ui_focus == 'topbar':
-            search_border_color = theme['colour_4']
-        else:
-            search_border_color = theme['colour_2']
-
-        pygame.draw.rect(
-            window,
-            search_border_color,
-            (bar_x, bar_y, bar_w, bar_h),
-            3,
-            border_radius=8
-        )
-
-        # tekst w search barze
-        display_text = s.search_text
-        
-        # Jeśli szukanie jest aktywne, dodaj migający kursor
-        if s.search_active:
-            if pygame.time.get_ticks() % 1000 < 500:
-                display_text += "|"
-        
-        text_to_render = display_text if display_text else "Search game..."
-        
-        # Zmiana koloru tekstu, gdy szukanie jest aktywne
-        if s.search_active:
-            color = (255, 255, 255) # Biały przy pisaniu
-        elif s.search_text:
-            color = (220, 220, 220) # Jasny jeśli coś wpisano
-        else:
-            color = (140, 140, 140) # Szary dla placeholder'a
-
-        surf = s.search_font.render(text_to_render, True, color)
-        window.blit(surf, (bar_x + 12, bar_y + bar_h // 2 - surf.get_height() // 2))
-
-        # -------- STATUS BAR --------
+        # -------- STATUS --------
         status_w = int(WINDOW_WIDTH * 0.12)
-        status_h = int(bar_h)
+        status_h = int(self.topbar_h * 0.55)
         status_x = WINDOW_WIDTH - status_w - 20
-        status_y = bar_y
+        status_y = self.topbar_h // 2 - status_h // 2
 
-        # border kolor jeśli focus na status
-        status_border_color = theme['colour_4'] if s.ui_focus == 'status' else (180, 180, 180)
+        border = theme['colour_4'] if self.ui_focus == "status" else theme['colour_2']
 
         pygame.draw.rect(
             window,
-            status_border_color,
+            border,
             (status_x, status_y, status_w, status_h),
             3,
             border_radius=8
         )
 
-        # tekst statusu
-        status_text = "ONLINE" if s.launcher.online_mode else "OFFLINE"
-        if s.ui_focus == "status":
-            status_text = f"[ {status_text} ]"
-        status_color = (80, 200, 120) if s.launcher.online_mode else (220, 80, 80)
+        status_text = "ONLINE" if self.launcher.online_mode else "OFFLINE"
+        color = (80, 200, 120) if self.launcher.online_mode else (220, 80, 80)
 
-        status_surf = s.internet_font.render(status_text, True, status_color)
+        surf = self.internet_font.render(status_text, True, color)
         window.blit(
-            status_surf,
-            (status_x + status_w // 2 - status_surf.get_width() // 2,
-            status_y + status_h // 2 - status_surf.get_height() // 2)
+            surf,
+            (status_x + status_w // 2 - surf.get_width() // 2,
+             status_y + status_h // 2 - surf.get_height() // 2)
         )
 
     # ==================================================
     # LOGIC
     # ==================================================
 
-    def launch_game(s):
-        if not s.filtered_games:
+    def apply_search_filter(self, query):
+        query = query.lower()
+        self.filtered_games = [
+            g for g in self.games_list if query in g.lower()
+        ] if query else self.games_list.copy()
+        self.selected_index = 0
+
+    def try_reconnect(self):
+        if self.reconnect_cooldown > 0:
+            return
+        self.launcher.online_mode = self.launcher.checking_internet_connection()
+        self.reconnect_cooldown = 2.0
+
+    def launch_game(self):
+        if not self.filtered_games:
             return
 
-        game_name = s.filtered_games[s.selected_index]
-        game_dir = os.path.join(GAMES_DIR, game_name)
+        game = self.filtered_games[self.selected_index]
+        game_dir = os.path.join(GAMES_DIR, game)
 
-        # Wykrywanie systemu
-        is_windows = sys.platform.startswith("win")
-        is_linux = sys.platform.startswith("linux")
-
-        if is_windows:
-            run_file = "[RUN]-Windows.bat"
-            # Zamień wywołanie bat na bezpośrednie pythonw
-            # Zakładamy, że gra jest plikiem Python lub exe
-            game_exec = os.path.join(game_dir, 'code', "main.py")  # przykładowo
-            if not os.path.exists(game_exec):
-                print(f"Brak pliku gry: {game_exec}")
-                return
-
-            proc = subprocess.Popen(
-                ["pythonw", game_exec],
+        if sys.platform.startswith("win"):
+            subprocess.Popen(
+                ["pythonw", os.path.join(game_dir, "code", "main.py")],
                 cwd=game_dir
             )
-
-        elif is_linux:
-            run_file = "[RUN]-linux.sh"
-            os.chmod(os.path.join(game_dir, run_file), 0o755)
-            proc = subprocess.Popen(
-                ["bash", run_file],
-                cwd=game_dir,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-        else:
-            print("Nieobsługiwany system operacyjny")
-            return
-
-        s.launcher.game_process = proc
-        s.launcher.game_running = True
-
-        if s.launcher.performance_settings_data['minimise_launcher_when_game_active']:
-            pygame.display.iconify()
-
-    def try_reconnect(s):
-        if s.reconnect_cooldown > 0:
-            return
-        s.launcher.online_mode = s.launcher.checking_internet_connection()
-        s.reconnect_cooldown = 2.0
-
-    def execute_sidebar_action(s):
-        state = s.sidebar_options[s.sidebar_index]
-        s.launcher.state_manager.set_state(state)
-
-    def load_game_assets(s):
-        icon_size = (s.icon_w, s.icon_w)
-        default = pygame.Surface(icon_size)
-        default.fill(THEME_LIBRARY[s.launcher.theme_data['current_theme']]['colour_2'])
-
-        for game in s.games_list:
-            path = os.path.join(GAMES_DIR, game, "icon.png")
-            if os.path.exists(path):
-                img = pygame.image.load(path).convert_alpha()
-                s.icons[game] = pygame.transform.scale(img, icon_size)
-            else:
-                s.icons[game] = default
-
-    def handle_text_input(s, event):
-        if not s.search_active:
-            return
-
-        if event.key == pygame.K_BACKSPACE:
-            s.search_text = s.search_text[:-1]
-
-        elif event.key == pygame.K_RETURN:
-            s.search_active = False
-
-        else:
-            if event.unicode and len(event.unicode) == 1:
-                s.search_text += event.unicode
-
-        s.apply_search_filter()
-
-    def apply_search_filter(s):
-            query = s.search_text.lower()
-
-            if query == "":
-                s.filtered_games = s.games_list.copy()
-            else:
-                s.filtered_games = [
-                    g for g in s.games_list if query in g.lower()
-                ]
-
-            s.selected_index = 0
+        elif sys.platform.startswith("linux"):
+            run_file = os.path.join(game_dir, "[RUN]-linux.sh")
+            os.chmod(run_file, 0o755)
+            subprocess.Popen(["bash", run_file], cwd=game_dir)

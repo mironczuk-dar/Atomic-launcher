@@ -183,18 +183,18 @@ class Library(BaseState):
         version = game_data.get("version", "unknown")
 
         panel_h = 120
-        pygame.draw.rect(window, theme['colour_2'], (0, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h))
-        pygame.draw.rect(window, theme['colour_4'], (0, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h), 3)
+        pygame.draw.rect(window, theme['colour_2'], (self.sidebar.base_w, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h))
+        pygame.draw.rect(window, theme['colour_4'], (self.sidebar.base_w, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h), 3)
 
         author_text = self.bottombar_font.render(f"Author: {author}", True, theme['colour_3'])
         desc_text = self.bottombar_font.render(description, True, theme['colour_3'])
         version_text = self.bottombar_font.render(f"Version: {version}", True, theme['colour_3'])
         uninstall_text = self.bottombar_font.render("Press ENTER to Uninstall", True, (255, 80, 80))
 
-        window.blit(author_text, (20, WINDOW_HEIGHT - panel_h + 10))
-        window.blit(desc_text, (20, WINDOW_HEIGHT - panel_h + 40))
-        window.blit(version_text, (20, WINDOW_HEIGHT - panel_h + 70))
-        window.blit(uninstall_text, (WINDOW_WIDTH - 300, WINDOW_HEIGHT - panel_h + 40))
+        window.blit(author_text, (20 + self.sidebar.base_w, WINDOW_HEIGHT - panel_h + 10))
+        window.blit(desc_text, (20 + self.sidebar.base_w, WINDOW_HEIGHT - panel_h + 40))
+        window.blit(version_text, (20 + self.sidebar.base_w, WINDOW_HEIGHT - panel_h + 70))
+        window.blit(uninstall_text, (WINDOW_WIDTH - 500, WINDOW_HEIGHT - panel_h + 40))
 
     # ==================================================
     # LOGIC

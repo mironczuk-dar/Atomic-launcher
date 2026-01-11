@@ -170,25 +170,21 @@ class Launcher:
 
     #METHOD FOR UPDATING THE LAUNCHER
     def update(s):
-        
-        #LOWERING FPS IF THERE'S A GAME RUNNING
+        # LOWERING FPS IF THERE'S A GAME RUNNING
         if s.game_running:
             s.delta_time = s.clock.tick(s.performance_settings_data['decrease_launcher_fps_when_game_active']) / 1000
         else:
             s.delta_time = s.clock.tick(s.fps) / 1000
 
-        #CHECKING IF GAME HAS ENDED
+        # CHECKING IF GAME HAS ENDED
         if s.game_running and s.game_process is not None:
             if s.game_process.poll() is not None:
                 s.game_running = False
                 s.game_process = None
-                
-                # PRZYWRACANIE OKNA
-                # Po zamknięciu gry wymuszamy powrót okna launchera
                 pygame.display.set_mode((s.window_data['width'], s.window_data['height']), s.flags)
-                print("Gra zamknięta. Powrót do Launchera.")
+                print("Gra zamknięta. Przywrócono okno launchera.")
 
-        #UPDATING CURRENT STATE
+        # UPDATING CURRENT STATE
         s.state_manager.update(s.delta_time)
 
     #METHOD FOR DRAWING THE LAUNCHER

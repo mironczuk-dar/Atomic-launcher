@@ -1,35 +1,41 @@
 @echo off
-setlocal
+REM ==========================
+REM Run.bat for Windows
+REM ==========================
 
-:: ALWAYS RUN FROM SCRIPT DIRECTORY
+echo Checking for Python...
+
+REM --- CHECK IF PYTHON IS INSTALLED ---
+where python >nul 2>nul
+IF %ERRORLEVEL% NEQ 0 (
+    echo Python is not installed!
+    echo Please install Python 3 and add it to PATH.
+    pause
+    exit /b 1
+)
+echo Python is installed.
+
+REM --- CHANGE TO LAUNCHER DIRECTORY ---
 cd /d "%~dp0"
 
-:: ----- Sprawdzenia -----
-where python >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Python not found.
-    pause
-    exit /b 1
+REM --- CHECK INTERNET CONNECTION ---
+ping -n 1 8.8.8.8 >nul
+IF %ERRORLEVEL% EQU 0 (
+    echo Internet connection found. Checking for updates...
+    
+    REM --- PULL LATEST CODE FROM GITHUB ---
+    git pull origin main
+
+    REM --- UPDATE PYTHON LIBRARIES ---
+    python -m pip install --upgrade pygame-ce pytmx >nul
+    echo Updates finished or already up to date.
+) ELSE (
+    echo No internet connection. Skipping updates.
 )
 
-where git >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Git not found.
-    pause
-    exit /b 1
-)
+echo Starting DonutPi OS...
 
-:: ----- Sprawdzenie internetu i aktualizacje -----
-ping -n 1 -w 1000 8.8.8.8 >nul
-if %errorlevel% equ 0 (
-    if exist ".git" (
-        git pull origin main --no-rebase
-    )
-    python -m pip install --upgrade pygame-ce pytmx --quiet
-)
+REM --- LAUNCH THE GAME ---
+python code\main.py
 
-:: ----- Uruchomienie launchera BEZ terminala -----
-start "" pythonw code/main.py
-
-:: ---- Nie blokujemy terminala ----
-exit /b 0
+pause

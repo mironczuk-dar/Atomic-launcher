@@ -85,17 +85,15 @@ class Store(BaseState):
     def handling_events(self, events):
         keys = pygame.key.get_just_pressed()
 
-        # ------------------------------
-        # SIDEBAR
-        # ------------------------------
-        self.sidebar.handle_input(keys, self.ui_focus)
-        if self.ui_focus == "sidebar" and keys[pygame.K_RIGHT]:
-            self.ui_focus = "content"
+        # 1. SIDEBAR LOGIC
+        if self.ui_focus == "sidebar":
+            self.sidebar.handle_input(keys, self.ui_focus)
+            if keys[pygame.K_RIGHT] or keys[pygame.K_TAB]:
+                self.ui_focus = "content"
+                return # Kończymy przetwarzanie w tej klatce, żeby nie "odbiło" z powrotem
 
-        # ------------------------------
-        # SEARCHBAR LOGIC
-        # ------------------------------
-        if self.ui_focus == "searchbar" and self.online:
+        # 2. SEARCHBAR LOGIC
+        elif self.ui_focus == "searchbar" and self.online:
             if not self.searchbar.active:
                 self.searchbar.active = True
 
@@ -103,14 +101,10 @@ class Store(BaseState):
             if exited_search:
                 self.ui_focus = "content"
                 self.searchbar.active = False
-                return
-            # block content nav while typing
             return
 
-        # ------------------------------
-        # CONTENT NAVIGATION
-        # ------------------------------
-        if self.ui_focus == "content":
+        # 3. CONTENT NAVIGATION
+        elif self.ui_focus == "content":
             if keys[pygame.K_UP]:
                 if self.selected_index == 0 and self.online:
                     self.ui_focus = 'searchbar'
@@ -119,7 +113,7 @@ class Store(BaseState):
                     self.selected_index = max(0, self.selected_index - 1)
             elif keys[pygame.K_DOWN]:
                 self.selected_index = min(len(self.entries) - 1, self.selected_index + 1)
-            elif keys[pygame.K_LEFT]:
+            elif keys[pygame.K_LEFT] or keys[pygame.K_TAB]:
                 self.ui_focus = "sidebar"
             elif keys[pygame.K_RETURN]:
                 self.install_or_update_selected()

@@ -73,21 +73,28 @@ class Library(BaseState):
         keys = pygame.key.get_just_pressed()
 
         # ---------- SEARCHBAR ----------
-        exited_search = self.searchbar.handle_events(events)
-        if exited_search:
-            self.ui_focus = "content"
-            return
+        # Jeśli szukamy, blokujemy resztę sterowania
         if self.searchbar.active:
+            exited_search = self.searchbar.handle_events(events)
+            if exited_search:
+                self.ui_focus = "content"
             return
 
-        initial_focus = self.ui_focus
-        super().handling_events(events)
-        if initial_focus != self.ui_focus:
-            return
+        # ---------- GLOBAL TOGGLES (Klawisze niezależne od fokusu) ----------
+        # Przełączanie BottomBar klawiszem 'E'
+        if keys[pygame.K_e]:
+            self.bottombar_visible = not self.bottombar_visible
+            if self.bottombar_visible:
+                self.ui_focus = "bottombar"
+            else:
+                self.ui_focus = "content"
+            return # Kończymy klatkę po przełączeniu
 
-        # ---------- CONTENT NAVIGATION ----------
+        # ---------- FOCUS MANAGEMENT ----------
         if self.ui_focus == "content":
-            if keys[pygame.K_UP]:
+            if keys[pygame.K_TAB]:
+                self.ui_focus = "sidebar"
+            elif keys[pygame.K_UP]:
                 self.ui_focus = "topbar"
             elif keys[pygame.K_DOWN]:
                 if self.filtered_games:
@@ -100,21 +107,16 @@ class Library(BaseState):
             elif keys[pygame.K_RIGHT]:
                 if self.filtered_games:
                     self.selected_index = min(self.selected_index + 1, len(self.filtered_games) - 1)
-            elif keys[pygame.K_TAB]:
-                self.bottombar_visible = not self.bottombar_visible
-                if self.bottombar_visible:
-                    self.ui_focus = "bottombar"
             elif keys[pygame.K_RETURN] or keys[pygame.K_r]:
                 self.launch_game()
 
-        # ---------- TOP BAR ----------
-        elif self.ui_focus == "topbar":
-            if keys[pygame.K_DOWN]:
+        elif self.ui_focus == "sidebar":
+            # Wywołujemy logikę sidebaru (np. nawigacja wewnątrz niego)
+            self.sidebar.handle_input(keys, self.ui_focus)
+            # Powrót do contentu na Tab lub Strzałkę w Prawo
+            if keys[pygame.K_TAB] or keys[pygame.K_RIGHT]:
                 self.ui_focus = "content"
-            elif keys[pygame.K_RETURN]:
-                self.searchbar.active = True
 
-        # ---------- BOTTOM BAR ----------
         elif self.ui_focus == "bottombar":
             if keys[pygame.K_TAB] or keys[pygame.K_ESCAPE]:
                 self.ui_focus = "content"
@@ -126,6 +128,17 @@ class Library(BaseState):
             elif keys[pygame.K_RETURN]:
                 action = self.bottombar_actions[self.selected_bottombar_index]
                 action["callback"]()
+
+        elif self.ui_focus == "topbar":
+            if keys[pygame.K_DOWN]:
+                self.ui_focus = "content"
+            elif keys[pygame.K_TAB]:
+                self.ui_focus = "sidebar"
+            elif keys[pygame.K_RETURN]:
+                self.searchbar.active = True
+
+        # Wywołanie bazowe dla ogólnych skrótów (jeśli BaseState je posiada)
+        super().handling_events(events)
 
     # ==================================================
     # UPDATE

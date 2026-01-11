@@ -61,44 +61,43 @@ class Sidebar:
 
     def draw(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
-
-        # aktualizujemy opcje tylko jeśli się zmieniły
         self.options = list(self.launcher.state_manager.states.keys())
 
         # ---- BACKGROUND ----
-        pygame.draw.rect(
-            window,
-            theme['colour_4'],
-            (0, 0, int(self.current_w), WINDOW_HEIGHT)
-        )
+        pygame.draw.rect(window, theme['colour_4'], (0, 0, int(self.current_w), WINDOW_HEIGHT))
 
         if not self.options:
             return
 
-        # ---- EXPAND PROGRESS ----
+        # ---- USTAWIENIA ODSTĘPÓW ----
+        item_height = 60  # Stała wysokość jednego elementu
+        start_y = 100     # Margines od górnej krawędzi paska
+        spacing = 40      # Dodatkowy odstęp między ikonami
+
         width_diff = self.expanded_w - self.base_w
         progress = (self.current_w - self.base_w) / max(1, width_diff)
         progress = max(0.0, min(1.0, progress))
-
-        section_h = WINDOW_HEIGHT / len(self.options)
 
         for i, name in enumerate(self.options):
             selected = i == self.index
             color = theme['colour_3'] if selected else (220, 220, 220)
 
-            y = section_h * i + section_h / 2
+            # Obliczamy Y na podstawie stałej wysokości, a nie wysokości okna
+            y_center = start_y + i * (item_height + spacing)
 
             # ---- ICON ----
             icon = self.icons.get(name)
             if icon:
-                icon_y = y - icon.get_height() / 2
+                # Wyśrodkowanie ikony w pionie względem y_center
+                icon_y = y_center - icon.get_height() / 2
+                # Ikona zostaje na stałej pozycji X (np. 20px)
                 window.blit(icon, (20, icon_y))
 
-            # ---- TEXT (dopiero po rozwinięciu) ----
+            # ---- TEXT ----
             if progress > 0.25:
-                text = self.font.render(name.upper(), True, color).convert_alpha()
-                text.set_alpha(int(progress * 255))
+                text_surf = self.font.render(name.upper(), True, color).convert_alpha()
+                text_surf.set_alpha(int(progress * 255))
 
                 text_x = 20 + self.icon_size + 16
-                text_y = y - text.get_height() / 2
-                window.blit(text, (text_x, text_y))
+                text_y = y_center - text_surf.get_height() / 2
+                window.blit(text_surf, (text_x, text_y))

@@ -14,6 +14,7 @@ from Tools.game_installer import GameInstaller
 from States.state_manager import StateManager
 from States.library import Library
 from States.store import Store
+from States.options import Options
 
 
 #LAUNCHER CLASS
@@ -87,6 +88,7 @@ class Launcher:
     def creating_states(s):
         s.state_manager.add_state('Library', Library(s))
         s.state_manager.add_state('Store', Store(s))
+        s.state_manager.add_state('Options', Options(s))
 
         #SETTING CURRENT STATE
         s.state_manager.set_state('Library')

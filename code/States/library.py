@@ -248,7 +248,6 @@ class Library(BaseState):
         if not self.filtered_games:
             return
 
-        # Jeśli gra już działa, nie uruchamiaj kolejnej
         if self.launcher.game_running:
             print("Gra jest już uruchomiona!")
             return
@@ -256,21 +255,23 @@ class Library(BaseState):
         game = self.filtered_games[self.selected_index]
         game_dir = os.path.join(GAMES_DIR, game)
         
-        # Wybór skryptu
         main_path = os.path.join(game_dir, "code", "main.py")
         if not os.path.exists(main_path):
             main_path = os.path.join(game_dir, "main.py")
 
         try:
-            # Przypisujemy proces do Launchera
-            # Używamy sys.executable, aby działało na macOS/Linux/Win
+            print(f"Uruchamiano: {game}...")
+            
+            # URUCHOMIENIE PROCESU
             process = subprocess.Popen([sys.executable, main_path], cwd=game_dir)
             
-            # AKTUALIZACJA STANU W LAUNCHERZE
             self.launcher.game_process = process
             self.launcher.game_running = True
-            
-            print(f"Uruchomiono: {game}")
+
+            # MINIMALIZACJA OKNA LAUNCHERA
+            # Pozwala to oknie gry "wskoczyć" na wierzch w trybie fullscreen
+            pygame.display.iconify()
+
         except Exception as e:
             print(f"Błąd startu: {e}")
 

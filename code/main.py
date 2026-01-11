@@ -149,6 +149,22 @@ class Launcher:
                     pygame.quit()
                     exit()
 
+                #TOGGLING FULLSCREEN MODE
+                if event.key == pygame.K_9:
+                    s.fullscreen = not s.fullscreen
+                    s.window_data['fullscreen'] = s.fullscreen
+
+                    if s.fullscreen:
+                        s.last_window_size = (s.display.get_width(), s.display.get_height())
+                        s.flags = pygame.FULLSCREEN
+                        s.display = pygame.display.set_mode((s.window_data['width'], s.window_data['height']), s.flags)
+                    else:
+                        s.flags = pygame.RESIZABLE
+                        s.display = pygame.display.set_mode(s.last_window_size, s.flags)
+                        s.window_data['width'], s.window_data['height'] = s.last_window_size
+
+                    save_data(s.window_data, WINDOW_DATA_PATH)
+
         #PASSING EVENTS TO THE CURRENT STATE
         s.state_manager.handling_events(events)
 
@@ -166,6 +182,11 @@ class Launcher:
             if s.game_process.poll() is not None:
                 s.game_running = False
                 s.game_process = None
+                
+                # PRZYWRACANIE OKNA
+                # Po zamknięciu gry wymuszamy powrót okna launchera
+                pygame.display.set_mode((s.window_data['width'], s.window_data['height']), s.flags)
+                print("Gra zamknięta. Powrót do Launchera.")
 
         #UPDATING CURRENT STATE
         s.state_manager.update(s.delta_time)

@@ -1,34 +1,67 @@
 #!/bin/bash
 
-echo "Checking for Python..."
+# 1. PRZEJŚCIE DO KATALOGU LAUNCHERA
+cd "/home/pi/Atomic-launcher"
 
-# CHECKING IF PYTHON IS INSTALLED
-if ! command -v python3 &> /dev/null; then
-    echo "Python3 is not installed!"
-    echo "Please install it using your package manager."
-    exit 1
-fi
+# 2. FUNKCJA AUTO-INSTALACJI PAKIETÓW
+install_missing() {
+    PACKAGE=$1
+    if ! command -v $PACKAGE &> /dev/null; then
+        echo "[Installer] $PACKAGE nie znaleziony. Próba instalacji..."
+        if ping -q -c 1 -W 1 8.8.8.8 >/dev/null; then
+            sudo apt update
+            sudo apt install $PACKAGE -y
+        else
+            echo "[Error] Brak internetu! Nie można zainstalować $PACKAGE."
+            exit 1
+        fi
+    fi
+}
 
-echo "Python is installed."
+# Sprawdzanie i instalacja podstawowych narzędzi
+install_missing "python3"
+install_missing "git"
+install_missing "python3-pip"
 
-# --- UPDATING ---
-# CHECKING IF THERE'S INTERNET BY PINGING GOOGLE
+# 3. AKTUALIZACJA KODU I BIBLIOTEK (TYLKO PRZY STARCIE)
 if ping -q -c 1 -W 1 8.8.8.8 >/dev/null; then
-    echo "Internet connection found. Checking for updates..."
+    echo "[Update] Połączenie aktywne. Sprawdzanie aktualizacji..."
     
-    # 1. UPDATING CODE FROM GITHUB
-    echo "Pulling latest code from GitHub..."
+    # Aktualizacja kodu launchera
     git pull origin main --no-rebase
     
-    # 2. UPDATING LIBRARIES
+    # Aktualizacja wymaganych bibliotek Pythona
+    echo "[Update] Aktualizacja bibliotek Pythona..."
     sudo pip install --upgrade pygame-ce pytmx --break-system-packages --quiet
     
-    echo "Updates finished or already up to date."
+    echo "[Update] Gotowe."
 else
-    echo "No internet connection. Skipping updates."
+    echo "[Update] Brak internetu. Pomijanie aktualizacji."
 fi
-# ---------------------------
 
 echo "Starting DonutPi OS..."
-export DISPLAY=:0
-python3 code/main.py
+
+# 4. GŁÓWNA PĘTLA KIOSKU (Launcher <-> Gry)
+while true; do
+    echo "[System] Uruchamianie Launchera..."
+    
+    # Uruchomienie launchera
+    python3 code/main.py
+
+    # Sprawdzenie czy launcher wygenerował polecenie uruchomienia gry
+    if [ -f "/tmp/run_game.sh" ]; then
+        echo "[System] Uruchamianie gry..."
+        
+        # Uruchomienie skryptu gry
+        bash /tmp/run_game.sh
+        
+        # Usunięcie śladu po grze
+        rm /tmp/run_game.sh
+        
+        echo "[System] Gra zakończona. Powrót do menu..."
+    else
+        # Jeśli nie ma pliku gry, oznacza to wyjście z programu
+        echo "[System] Zamykanie launchera. Wyjście do terminala."
+        break
+    fi
+done

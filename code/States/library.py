@@ -248,32 +248,42 @@ class Library(BaseState):
         if not self.filtered_games:
             return
 
-        if self.launcher.game_running:
-            print("Gra jest już uruchomiona!")
-            return
-
         game = self.filtered_games[self.selected_index]
         game_dir = os.path.join(GAMES_DIR, game)
         
+        # Wybór ścieżki do gry
         main_path = os.path.join(game_dir, "code", "main.py")
         if not os.path.exists(main_path):
             main_path = os.path.join(game_dir, "main.py")
 
-        try:
-            print(f"Uruchamiano: {game}...")
-            
-            # URUCHOMIENIE PROCESU
-            process = subprocess.Popen([sys.executable, main_path], cwd=game_dir)
-            
-            self.launcher.game_process = process
-            self.launcher.game_running = True
+        current_os = self.launcher.system
 
-            # MINIMALIZACJA OKNA LAUNCHERA
-            # Pozwala to oknie gry "wskoczyć" na wierzch w trybie fullscreen
-            pygame.display.iconify()
+        try:
+            if current_os == "Linux":
+                # --- LOGIKA DLA RASPBERRY PI (OS LITE) ---
+                # Tworzymy skrypt tymczasowy dla pętli Bash
+                with open("/tmp/run_game.sh", "w") as f:
+                    f.write(f"cd \"{game_dir}\" && python3 \"{main_path}\"")
+                
+                print(f"Linux: Przygotowano skrypt. Zamykanie launchera...")
+                pygame.quit()
+                sys.exit()
+
+            else:
+                # --- LOGIKA DLA WINDOWS (Visual Studio / Desktop) ---
+                # Na Windowsie używamy starej metody subprocess, 
+                # bo tutaj mamy menedżer okien i nie chcemy zamykać VS.
+                print(f"Windows: Uruchamianie gry w nowym procesie...")
+                
+                # Otwieramy grę jako oddzielny proces
+                subprocess.Popen([sys.executable, main_path], cwd=game_dir)
+                
+                # W opcjach testowych na Windowsie możemy np. zminimalizować okno
+                self.launcher.game_running = True
+                pygame.display.iconify()
 
         except Exception as e:
-            print(f"Błąd startu: {e}")
+            print(f"Błąd uruchamiania ({current_os}): {e}")
 
 
     def on_enter(self):

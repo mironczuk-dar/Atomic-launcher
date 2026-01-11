@@ -224,6 +224,8 @@ class Launcher:
             #DRAWING THE LAUNCHER
             s.draw()
 
+            print(s.clock.get_fps())
+
 #RUNNING THE LAUNCHER ONLY FROM THE MAIN FILE
 if __name__ == '__main__':
     

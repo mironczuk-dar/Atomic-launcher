@@ -10,6 +10,7 @@ from settings import *
 from Tools.data_loading_tools import load_data, save_data
 
 #IMPROTING STATES AND STATE MANAGERS
+from Tools.game_installer import GameInstaller
 from States.state_manager import StateManager
 from States.library import Library
 from States.store import Store
@@ -50,6 +51,9 @@ class Launcher:
         #INITALIZING CLOCK
         s.clock = pygame.time.Clock()
         s.fps = s.window_data['fps']
+
+        #CREATING THE GAME INSTALLER
+        s.installer = GameInstaller(GAMES_DIR)
 
         #CREATING STATE MANAGER AND STATES
         s.state_manager = StateManager(s)

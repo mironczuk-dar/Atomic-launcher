@@ -1,12 +1,13 @@
-# IMPORTING LIBRARIES
+# ==========================
+# library.py (with bottom bar)
+# ==========================
 import pygame
 import os
 import subprocess
 import sys
-
-# IMPORTING FILES
+import json
 from States.generic_state import BaseState
-from settings import GAMES_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
+from settings import GAMES_DIR, BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
 from UI.searchbar import SearchBar
 from UI.game_icon import GameIcon
 
@@ -16,8 +17,13 @@ class Library(BaseState):
         super().__init__(launcher)
 
         # ---------- UI FOCUS ----------
-        # content | sidebar | topbar | status
+        # content | sidebar | topbar | bottombar | searchbar
         self.ui_focus = "content"
+        self.bottombar_visible = False
+
+        # ---------- LOAD MANIFEST ----------
+        self.manifest_path = os.path.join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
+        self.manifest = self.load_manifest()
 
         # ---------- GAMES ----------
         self.games_list = [
@@ -36,12 +42,10 @@ class Library(BaseState):
         # ---------- FONTS ----------
         self.game_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.06))
         self.internet_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.02), bold=True)
+        self.bottombar_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.025))
 
         # ---------- TOP BAR ----------
         self.topbar_h = int(WINDOW_HEIGHT * 0.1)
-
-        # ---------- INTERNET ----------
-        self.reconnect_cooldown = 0.0
 
         # ---------- ICONS ----------
         self.icon_w = int(WINDOW_WIDTH * 0.2)
@@ -49,27 +53,17 @@ class Library(BaseState):
         self.scroll_speed = 6
         self.current_scroll = 0
 
-        # ---------- ICON OBJECTS ----------
         self.icon_group = pygame.sprite.Group()
         self.game_icons = {}
-
-        for game in self.games_list:
-            icon = GameIcon(
-                launcher=self.launcher,
-                groups=self.icon_group,
-                game_id=game,
-                size=self.icon_w,
-                source="library",
-            )
-            self.game_icons[game] = icon
+        self.refresh_library()
 
     # ==================================================
     # INPUT
     # ==================================================
-
     def handling_events(self, events):
         keys = pygame.key.get_just_pressed()
 
+        # SEARCHBAR
         exited_search = self.searchbar.handle_events(events)
         if exited_search:
             self.ui_focus = "content"
@@ -79,14 +73,16 @@ class Library(BaseState):
 
         initial_focus = self.ui_focus
         super().handling_events(events)
-
         if initial_focus != self.ui_focus:
             return
 
-        # -------- CONTENT --------
+        # ---------- CONTENT NAVIGATION ----------
         if self.ui_focus == "content":
             if keys[pygame.K_UP]:
                 self.ui_focus = "topbar"
+            elif keys[pygame.K_DOWN]:
+                if self.filtered_games:
+                    self.selected_index = min(self.selected_index + 1, len(self.filtered_games) - 1)
             elif keys[pygame.K_LEFT]:
                 if self.selected_index > 0:
                     self.selected_index -= 1
@@ -94,61 +90,52 @@ class Library(BaseState):
                     self.ui_focus = "sidebar"
             elif keys[pygame.K_RIGHT]:
                 if self.filtered_games:
-                    self.selected_index = min(
-                        self.selected_index + 1,
-                        len(self.filtered_games) - 1
-                    )
+                    self.selected_index = min(self.selected_index + 1, len(self.filtered_games) - 1)
+            elif keys[pygame.K_TAB]:
+                self.bottombar_visible = not self.bottombar_visible
+                if self.bottombar_visible:
+                    self.ui_focus = "bottombar"
             elif keys[pygame.K_RETURN] or keys[pygame.K_r]:
                 self.launch_game()
 
-        # -------- TOP BAR --------
+        # ---------- TOP BAR ----------
         elif self.ui_focus == "topbar":
             if keys[pygame.K_DOWN]:
                 self.ui_focus = "content"
-            elif keys[pygame.K_RIGHT]:
-                self.ui_focus = "status"
             elif keys[pygame.K_RETURN]:
                 self.searchbar.active = True
 
-        # -------- STATUS --------
-        elif self.ui_focus == "status":
-            if keys[pygame.K_LEFT]:
-                self.ui_focus = "topbar"
-            elif keys[pygame.K_DOWN]:
+        # ---------- BOTTOM BAR ----------
+        elif self.ui_focus == "bottombar":
+            if keys[pygame.K_TAB] or keys[pygame.K_ESCAPE]:
                 self.ui_focus = "content"
+                self.bottombar_visible = False
             elif keys[pygame.K_RETURN]:
-                self.try_reconnect()
+                game = self.filtered_games[self.selected_index]
+                success = self.launcher.installer.remove(game)
+                if success:
+                    self.refresh_library()
+                    self.ui_focus = "content"
+                    self.bottombar_visible = False
 
     # ==================================================
     # UPDATE
     # ==================================================
-
     def update(self, delta_time):
         super().update(delta_time)
-
-        # smooth scroll
-        self.current_scroll += (
-            self.selected_index - self.current_scroll
-        ) * self.scroll_speed * delta_time
-
-        self.reconnect_cooldown = max(0, self.reconnect_cooldown - delta_time)
+        self.current_scroll += (self.selected_index - self.current_scroll) * self.scroll_speed * delta_time
 
     # ==================================================
     # DRAW
     # ==================================================
-
     def draw(self, window):
         self.draw_game_icons(window)
         self.draw_topbar(window)
+        if self.bottombar_visible:
+            self.draw_bottombar(window)
 
-        self.searchbar.draw(
-            window,
-            focused=self.ui_focus == "topbar"
-        )
-
-        super().draw(window)  # sidebar
-
-    # --------------------------------------------------
+        self.searchbar.draw(window, focused=self.ui_focus in ["topbar", "searchbar"])
+        super().draw(window)
 
     def draw_game_icons(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
@@ -156,14 +143,10 @@ class Library(BaseState):
 
         if not self.filtered_games:
             msg = self.game_font.render("NO GAMES FOUND", True, theme['colour_2'])
-            window.blit(
-                msg,
-                (WINDOW_WIDTH // 2 - msg.get_width() // 2,
-                 WINDOW_HEIGHT // 2)
-            )
+            window.blit(msg, (WINDOW_WIDTH // 2 - msg.get_width() // 2, WINDOW_HEIGHT // 2))
             return
 
-        center_x = self.sidebar.current_w + (WINDOW_WIDTH - self.sidebar.current_w) // 2 -100
+        center_x = self.sidebar.current_w + (WINDOW_WIDTH - self.sidebar.current_w) // 2 - 100
         center_y = WINDOW_HEIGHT // 2
 
         for i, game in enumerate(self.filtered_games):
@@ -176,119 +159,87 @@ class Library(BaseState):
             y = center_y
 
             icon.set_position(x, y)
-            icon.set_selected(
-                i == self.selected_index and self.ui_focus == "content"
-            )
+            icon.set_selected(i == self.selected_index and self.ui_focus == "content")
             icon.draw(window)
 
-            if i == self.selected_index and self.ui_focus == 'content':
+            if i == self.selected_index and self.ui_focus == "content":
                 name = game.replace("_", " ").upper()
                 text = self.game_font.render(name, True, theme['colour_3'])
-                window.blit(
-                    text,
-                    (x - text.get_width() // 2,
-                     y - self.icon_w // 2 - 80)
-                )
-
-    # --------------------------------------------------
+                window.blit(text, (x - text.get_width() // 2, y - self.icon_w // 2 - 80))
 
     def draw_topbar(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
+        pygame.draw.rect(window, theme['colour_1'], (0, 0, WINDOW_WIDTH, self.topbar_h))
 
-        pygame.draw.rect(
-            window,
-            theme['colour_1'],
-            (0, 0, WINDOW_WIDTH, self.topbar_h)
-        )
+    def draw_bottombar(self, window):
+        if not self.filtered_games:
+            return
+        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
+        game_id = self.filtered_games[self.selected_index]
 
-        # -------- STATUS --------
-        status_w = int(WINDOW_WIDTH * 0.12)
-        status_h = int(self.topbar_h * 0.55)
-        status_x = WINDOW_WIDTH - status_w - 20
-        status_y = self.topbar_h // 2 - status_h // 2
+        game_data = self.manifest.get(game_id, {})
+        author = game_data.get("author", "Unknown")
+        description = game_data.get("description", "")
+        version = game_data.get("version", "unknown")
 
-        border = theme['colour_4'] if self.ui_focus == "status" else theme['colour_2']
+        panel_h = 120
+        pygame.draw.rect(window, theme['colour_2'], (0, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h))
+        pygame.draw.rect(window, theme['colour_4'], (0, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH, panel_h), 3)
 
-        pygame.draw.rect(
-            window,
-            border,
-            (status_x, status_y, status_w, status_h),
-            3,
-            border_radius=8
-        )
+        author_text = self.bottombar_font.render(f"Author: {author}", True, theme['colour_3'])
+        desc_text = self.bottombar_font.render(description, True, theme['colour_3'])
+        version_text = self.bottombar_font.render(f"Version: {version}", True, theme['colour_3'])
+        uninstall_text = self.bottombar_font.render("Press ENTER to Uninstall", True, (255, 80, 80))
 
-        status_text = "ONLINE" if self.launcher.online_mode else "OFFLINE"
-        color = (80, 200, 120) if self.launcher.online_mode else (220, 80, 80)
-
-        surf = self.internet_font.render(status_text, True, color)
-        window.blit(
-            surf,
-            (status_x + status_w // 2 - surf.get_width() // 2,
-             status_y + status_h // 2 - surf.get_height() // 2)
-        )
+        window.blit(author_text, (20, WINDOW_HEIGHT - panel_h + 10))
+        window.blit(desc_text, (20, WINDOW_HEIGHT - panel_h + 40))
+        window.blit(version_text, (20, WINDOW_HEIGHT - panel_h + 70))
+        window.blit(uninstall_text, (WINDOW_WIDTH - 300, WINDOW_HEIGHT - panel_h + 40))
 
     # ==================================================
     # LOGIC
     # ==================================================
+    def load_manifest(self):
+        if not os.path.exists(self.manifest_path):
+            return {}
+        try:
+            with open(self.manifest_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[Library] Failed to load manifest: {e}")
+            return {}
 
     def apply_search_filter(self, query):
         query = query.lower()
-        self.filtered_games = [
-            g for g in self.games_list if query in g.lower()
-        ] if query else self.games_list.copy()
+        self.filtered_games = [g for g in self.games_list if query in g.lower()] if query else self.games_list.copy()
         self.selected_index = 0
 
-    def try_reconnect(self):
-        if self.reconnect_cooldown > 0:
-            return
-        self.launcher.online_mode = self.launcher.checking_internet_connection()
-        self.reconnect_cooldown = 2.0
-
     def launch_game(self):
-        if not self.filtered_games:
-            return
-
-        if self.launcher.game_running:
-            print("Gra jest już uruchomiona!")
+        if not self.filtered_games or self.launcher.game_running:
             return
 
         game = self.filtered_games[self.selected_index]
         game_dir = os.path.join(GAMES_DIR, game)
-        
         main_path = os.path.join(game_dir, "code", "main.py")
         if not os.path.exists(main_path):
             main_path = os.path.join(game_dir, "main.py")
 
         try:
-            print(f"Uruchamiano: {game}...")
-            
-            # URUCHOMIENIE PROCESU
+            print(f"Launching {game}...")
             process = subprocess.Popen([sys.executable, main_path], cwd=game_dir)
-            
             self.launcher.game_process = process
             self.launcher.game_running = True
-
-            # MINIMALIZACJA OKNA LAUNCHERA
-            # Pozwala to oknie gry "wskoczyć" na wierzch w trybie fullscreen
             pygame.display.iconify()
-
         except Exception as e:
-            print(f"Błąd startu: {e}")
-
+            print(f"Launch error: {e}")
 
     def on_enter(self):
-        """Wywoływane automatycznie przez launcher przy wejściu do biblioteki."""
-        print("[Library] Odświeżanie zawartości...")
         self.refresh_library()
 
     def refresh_library(self):
-        # 1. Pobierz aktualne foldery z dysku
-        current_folders = [
-            name for name in os.listdir(GAMES_DIR)
-            if os.path.isdir(os.path.join(GAMES_DIR, name))
-        ]
+        current_folders = [name for name in os.listdir(GAMES_DIR) if os.path.isdir(os.path.join(GAMES_DIR, name))]
 
-        # 2. Dodaj nowe ikony (jeśli przybyło gier)
+        # Add new icons
         for game in current_folders:
             if game not in self.game_icons:
                 icon = GameIcon(
@@ -296,23 +247,17 @@ class Library(BaseState):
                     groups=self.icon_group,
                     game_id=game,
                     size=self.icon_w,
-                    source="library",
+                    source="library"
                 )
                 self.game_icons[game] = icon
 
-        # 3. Usuń ikony gier, których już nie ma na dysku
+        # Remove deleted icons
         removed_games = set(self.game_icons.keys()) - set(current_folders)
         for game in removed_games:
-            self.game_icons[game].kill()  # Usuwa sprite z grup Pygame
+            self.game_icons[game].kill()
             del self.game_icons[game]
 
-        # 4. Zaktualizuj listę nazw i filtry
         self.games_list = current_folders
-        
-        # Resetujemy filtr wyszukiwania, żeby nowa gra była widoczna
-        # lub wywołujemy filtrację ponownie z aktualnym tekstem searchbara
         self.apply_search_filter(self.searchbar.text)
-        
-        # Zabezpieczenie selected_index (żeby nie wyszedł poza zakres po usunięciu gry)
         if self.selected_index >= len(self.filtered_games) and self.filtered_games:
             self.selected_index = len(self.filtered_games) - 1

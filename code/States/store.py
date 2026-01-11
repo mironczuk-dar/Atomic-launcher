@@ -6,7 +6,6 @@ import json
 from os.path import join
 
 from settings import BASE_DIR, GAMES_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
-from Store.game_installer import GameInstaller
 from UI.store_entry import StoreEntry, GameStatus
 from UI.searchbar import SearchBar
 from States.generic_state import BaseState
@@ -31,7 +30,6 @@ class Store(BaseState):
 
         # ---------- GAME DATA ----------
         self.manifest = self.load_manifest()
-        self.installer = GameInstaller(GAMES_DIR)
 
         self.all_games = list(self.manifest.keys())
         self.filtered_games = self.all_games.copy()
@@ -63,9 +61,9 @@ class Store(BaseState):
             data = self.manifest[game_id]
             manifest_version = data.get('version')
 
-            if not self.installer.is_installed(game_id):
+            if not self.launcher.installer.is_installed(game_id):
                 status = GameStatus.NOT_INSTALLED
-            elif self.installer.has_update(game_id, manifest_version):
+            elif self.launcher.installer.has_update(game_id, manifest_version):
                 status = GameStatus.UPDATE_AVAILABLE
             else:
                 status = GameStatus.INSTALLED
@@ -185,16 +183,27 @@ class Store(BaseState):
         manifest_version = data.get('version')
 
         if entry.status == GameStatus.NOT_INSTALLED:
-            self.installer.install(
+            self.launcher.installer.install(
                 game_id,
                 data['repo'],
                 manifest_version
             )
         elif entry.status == GameStatus.UPDATE_AVAILABLE:
-            self.installer.update(
+            self.launcher.installer.update(
                 game_id,
                 manifest_version
             )
 
         # 🔹 reload entries to update statuses
+        self.load_store_entries()
+
+    def on_enter(self):
+        """
+        Wywoływane gdy wchodzimy do Store.
+        Odświeżamy listę gier i statusy instalacji.
+        """
+        # Sprawdź ponownie połączenie z internetem
+        self.online = self.launcher.checking_internet_connection()
+
+        # Odśwież wpisy w sklepie, aby statusy instalacji były aktualne
         self.load_store_entries()

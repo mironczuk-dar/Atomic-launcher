@@ -1,19 +1,28 @@
 {
+  "infinite_runner": {
+    "name": "Infinite runner",
+    "author": "Duuudeee",
+    "repo": "https://github.com/mironczuk-dar/Infinite-runner.git",
+    "branch": "main",
+    "version": "1.0.0",
+    "icon": "infinite_runner.png",
+    "description": "Just keep running."
+  },
   "space_invaders": {
     "name": "Space Invaders",
     "author": "Some Dude",
-    "repo": "https://github.com/TwojUser/space-invaders.git",
+    "repo": "https://github.com/mironczuk-dar/Spcae-invaders.git",
     "branch": "main",
-    "version": "1.0.2",
+    "version": "1.0.0",
     "icon": "space_invaders.png",
     "description": "A game about space!"
   },
-  "snake_advanced": {
-    "name": "Snake Advanced",
+  "snake": {
+    "name": "Snake",
     "author": "Some Dude2",
-    "repo": "https://github.com/TwojUser/snake-advanced.git",
+    "repo": "https://github.com/mironczuk-dar/Snake.git",
     "branch": "main",
-    "version": "0.9.1",
+    "version": "1.0.0",
     "icon": "snake.png",
     "description": "Don't eat your own tail..."
 

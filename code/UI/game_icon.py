@@ -35,15 +35,27 @@ class GameIcon(pygame.sprite.Sprite):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
         size = (self.size, self.size)
 
-        # default icon
+        # 1. Tworzymy domyślny wygląd (fallback)
         default = pygame.Surface(size, pygame.SRCALPHA)
-        default.fill(theme['colour_2'])
+        pygame.draw.rect(default, theme['colour_2'], (0, 0, *size), border_radius=15)
 
-        path = os.path.join(GAMES_DIR, self.game_id, "icon.png")
+        # 2. Ustalamy skąd brać obrazek
+        final_path = None
+        
+        if self.source == "store" and icon_path:
+            # Jeśli jesteśmy w sklepie, używamy ścieżki przekazanej w __init__
+            final_path = icon_path
+        else:
+            # Jeśli jesteśmy w bibliotece, szukamy w folderze zainstalowanej gry
+            final_path = os.path.join(GAMES_DIR, self.game_id, "assets", "icon.png")
 
-        if path and os.path.exists(path):
-            img = pygame.image.load(path).convert_alpha()
-            return pygame.transform.smoothscale(img, size)
+        # 3. Próbujemy załadować plik
+        try:
+            if final_path and os.path.exists(final_path):
+                img = pygame.image.load(final_path).convert_alpha()
+                return pygame.transform.smoothscale(img, size)
+        except Exception as e:
+            print(f"[GameIcon] Błąd ładowania ikony {self.game_id}: {e}")
 
         return default
 

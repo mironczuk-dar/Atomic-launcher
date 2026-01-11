@@ -1,7 +1,9 @@
 import pygame
+from os.path import join
 
 from settings import THEME_LIBRARY
 from UI.game_icon import GameIcon
+from settings import BASE_DIR
 
 
 class StoreEntry(pygame.sprite.Sprite):
@@ -26,13 +28,17 @@ class StoreEntry(pygame.sprite.Sprite):
 
         # ---------- ICON ----------
         self.icon_size = self.height - 20
+        
+        # Poprawna ścieżka: każdy folder i plik jako osobny argument w join
+        full_icon_path = join(BASE_DIR, "assets", "store_assets", "game_icons", f"{game_id}.png")
+
         self.icon = GameIcon(
             launcher=self.launcher,
             groups=[],
             game_id=game_id,
             size=self.icon_size,
             source="store",
-            icon_path=f"data/store_icons/{game_data['icon']}",
+            icon_path=full_icon_path
         )
 
         # ---------- FONTS ----------

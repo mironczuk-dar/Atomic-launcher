@@ -98,6 +98,8 @@ class Library(BaseState):
                         self.selected_index + 1,
                         len(self.filtered_games) - 1
                     )
+            elif keys[pygame.K_RETURN] or keys[pygame.K_r]:
+                self.launch_game()
 
         # -------- TOP BAR --------
         elif self.ui_focus == "topbar":
@@ -246,15 +248,70 @@ class Library(BaseState):
         if not self.filtered_games:
             return
 
+        # Jeśli gra już działa, nie uruchamiaj kolejnej
+        if self.launcher.game_running:
+            print("Gra jest już uruchomiona!")
+            return
+
         game = self.filtered_games[self.selected_index]
         game_dir = os.path.join(GAMES_DIR, game)
+        
+        # Wybór skryptu
+        main_path = os.path.join(game_dir, "code", "main.py")
+        if not os.path.exists(main_path):
+            main_path = os.path.join(game_dir, "main.py")
 
-        if sys.platform.startswith("win"):
-            subprocess.Popen(
-                ["pythonw", os.path.join(game_dir, "code", "main.py")],
-                cwd=game_dir
-            )
-        elif sys.platform.startswith("linux"):
-            run_file = os.path.join(game_dir, "[RUN]-linux.sh")
-            os.chmod(run_file, 0o755)
-            subprocess.Popen(["bash", run_file], cwd=game_dir)
+        try:
+            # Przypisujemy proces do Launchera
+            # Używamy sys.executable, aby działało na macOS/Linux/Win
+            process = subprocess.Popen([sys.executable, main_path], cwd=game_dir)
+            
+            # AKTUALIZACJA STANU W LAUNCHERZE
+            self.launcher.game_process = process
+            self.launcher.game_running = True
+            
+            print(f"Uruchomiono: {game}")
+        except Exception as e:
+            print(f"Błąd startu: {e}")
+
+
+    def on_enter(self):
+        """Wywoływane automatycznie przez launcher przy wejściu do biblioteki."""
+        print("[Library] Odświeżanie zawartości...")
+        self.refresh_library()
+
+    def refresh_library(self):
+        # 1. Pobierz aktualne foldery z dysku
+        current_folders = [
+            name for name in os.listdir(GAMES_DIR)
+            if os.path.isdir(os.path.join(GAMES_DIR, name))
+        ]
+
+        # 2. Dodaj nowe ikony (jeśli przybyło gier)
+        for game in current_folders:
+            if game not in self.game_icons:
+                icon = GameIcon(
+                    launcher=self.launcher,
+                    groups=self.icon_group,
+                    game_id=game,
+                    size=self.icon_w,
+                    source="library",
+                )
+                self.game_icons[game] = icon
+
+        # 3. Usuń ikony gier, których już nie ma na dysku
+        removed_games = set(self.game_icons.keys()) - set(current_folders)
+        for game in removed_games:
+            self.game_icons[game].kill()  # Usuwa sprite z grup Pygame
+            del self.game_icons[game]
+
+        # 4. Zaktualizuj listę nazw i filtry
+        self.games_list = current_folders
+        
+        # Resetujemy filtr wyszukiwania, żeby nowa gra była widoczna
+        # lub wywołujemy filtrację ponownie z aktualnym tekstem searchbara
+        self.apply_search_filter(self.searchbar.text)
+        
+        # Zabezpieczenie selected_index (żeby nie wyszedł poza zakres po usunięciu gry)
+        if self.selected_index >= len(self.filtered_games) and self.filtered_games:
+            self.selected_index = len(self.filtered_games) - 1

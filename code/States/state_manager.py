@@ -18,6 +18,9 @@ class StateManager:
             s.active_state = s.states[name]
             print(f"State changed to: {name}")
 
+            if hasattr(s.active_state, 'on_enter'):
+                s.active_state.on_enter()
+
     def handling_events(s, events):
         """Przekazuje eventy do aktywnego stanu."""
         if s.active_state:

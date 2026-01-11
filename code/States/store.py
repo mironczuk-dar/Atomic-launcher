@@ -130,35 +130,22 @@ class Store(BaseState):
         # ------------------------------
         if self.ui_focus == "content":
             if not self.online:
-                # w trybie offline enter próbuje połączyć się z netem
+                # Pozwól wyjść do sidebaru nawet offline!
+                if keys[pygame.K_LEFT]:
+                    self.ui_focus = "sidebar"
                 if keys[pygame.K_RETURN]:
                     self.try_reconnect()
-                return  # nic więcej w content
-            # ONLINE content logic
-            if keys[pygame.K_UP]:
-                self.selected_index = max(0, self.selected_index - 1)
-            elif keys[pygame.K_DOWN]:
-                self.selected_index = min(len(self.entries) - 1, self.selected_index + 1)
-            elif keys[pygame.K_LEFT]:
-                self.ui_focus = "sidebar"  # <-- tutaj był problem
-            elif keys[pygame.K_RETURN]:
-                self.launch_or_install_selected()
-
-        # ------------------------------
-        # TOPBAR focus
-        # ------------------------------
-        elif self.ui_focus == "topbar":
-            if keys[pygame.K_DOWN]:
-                self.ui_focus = "content"
-            elif keys[pygame.K_RETURN] and self.online:
-                self.searchbar.active = True
-
-        # ------------------------------
-        # STATUS focus
-        # ------------------------------
-        elif self.ui_focus == "status":
-            if keys[pygame.K_RETURN]:
-                self.try_reconnect()
+                # Nie robimy pełnego return, żeby reszta stanów (sidebar) mogła działać
+            else:
+                # ONLINE content logic
+                if keys[pygame.K_UP]:
+                    self.selected_index = max(0, self.selected_index - 1)
+                elif keys[pygame.K_DOWN]:
+                    self.selected_index = min(len(self.entries) - 1, self.selected_index + 1)
+                elif keys[pygame.K_LEFT]:
+                    self.ui_focus = "sidebar"
+                elif keys[pygame.K_RETURN]:
+                    self.launch_or_install_selected()
 
 
     # ==================================================
@@ -190,35 +177,34 @@ class Store(BaseState):
         window.fill(theme['colour_1'])
 
         if not self.online:
-            # OFFLINE MODE
+            # Rysuj tylko komunikat zamiast list gier
             offline_font = pygame.font.SysFont(None, 50, bold=True)
             text = offline_font.render("Currently offline", True, theme['colour_2'])
             window.blit(
                 text,
-                (WINDOW_WIDTH // 2 - text.get_width() // 2,
+                (WINDOW_WIDTH // 2 - text.get_width() // 2 + self.sidebar.base_w // 2,
                 WINDOW_HEIGHT // 2 - 30)
             )
 
             hint_font = pygame.font.SysFont(None, 30)
-            hint = hint_font.render("Press ENTER to retry", True, theme['colour_2'])
+            hint = hint_font.render("Press ENTER to retry or use Sidebar to go back", True, theme['colour_2'])
             window.blit(
                 hint,
-                (WINDOW_WIDTH // 2 - hint.get_width() // 2,
+                (WINDOW_WIDTH // 2 - hint.get_width() // 2 + self.sidebar.base_w // 2,
                 WINDOW_HEIGHT // 2 + 30)
             )
-            return
+        else:
+            # Rysuj wpisy sklepu tylko gdy online
+            for i, entry in enumerate(self.entries):
+                selected = i == self.selected_index and self.ui_focus == "content"
+                entry.icon.set_selected(selected)
+                entry.rect.top = 150 + i * (self.entry_height + self.spacing) - self.scroll
+                entry.draw(window)
 
-        # draw entries only when online
-        for i, entry in enumerate(self.entries):
-            selected = i == self.selected_index and self.ui_focus == "content"
-            entry.icon.set_selected(selected)
-            entry.rect.top = 150 + i * (self.entry_height + self.spacing) - self.scroll
-            entry.draw(window)
+            # searchbar tylko gdy online
+            self.searchbar.draw(window, focused=self.ui_focus == "topbar")
 
-        # searchbar only when online
-        self.searchbar.draw(window, focused=self.ui_focus == "topbar")
-
-        # sidebar zawsze rysowany
+        # Sidebar rysuje się ZAWSZE na samym końcu (nad resztą treści)
         super().draw(window)
 
 
@@ -251,3 +237,10 @@ class Store(BaseState):
             self.load_store_entries()  # reload after install
         else:
             self.installer.update(game_id)
+
+    def on_enter(self):
+        """Odświeża stan połączenia i wpisy przy każdym wejściu do sklepu."""
+        self.online = self.launcher.checking_internet_connection()
+        self.manifest = self.load_manifest()
+        self.all_games = list(self.manifest.keys())
+        self.load_store_entries()

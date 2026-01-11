@@ -1,4 +1,5 @@
 {
+    "turn_off_launcher_when_game_active": false,
     "minimise_launcher_when_game_active": true,
-    "decrease_launcher_fps_when_game_active": 30
+    "decrease_launcher_fps_when_game_active": 40
 }

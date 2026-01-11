@@ -30,8 +30,9 @@ DEFAULT_AUDIO_DATA = {
 #PERFORMANCE SETTINGS
 PERFORMANCE_SETTINGS_DATA_PATH = join(BASE_DIR, 'data', 'performance_settings_data.json')
 DEFAULT_PERFORMANCE_SETTINGS_DATA = {
+    'turn_off_launcher_when_game_active' : False,
     'minimise_launcher_when_game_active' : True,
-    'decrease_launcher_fps_when_game_active' : 30
+    'decrease_launcher_fps_when_game_active' : 40
 }
 
 #THEMES DATA

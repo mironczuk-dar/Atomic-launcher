@@ -61,3 +61,7 @@ class BaseState:
 
     def draw(self, window):
         self.sidebar.draw(window)
+
+
+    def on_enter(self):
+        pass

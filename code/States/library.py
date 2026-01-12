@@ -289,3 +289,37 @@ class Library(BaseState):
 
     def export_save_file(self):
         print("Feature coming soon: Save export")
+
+    def on_enter(self):
+        self.refresh_library()
+
+    def launch_game(self):
+        """Uruchamia wybraną grę w nowym procesie."""
+        if not self.filtered_games:
+            return
+
+        folder_name = self.filtered_games[self.selected_index]
+        game_path = os.path.join(GAMES_DIR, folder_name, 'code')
+        
+        # Pobieramy informacje o pliku startowym z manifestu
+        game_data = self.manifest.get(folder_name, {})
+        main_file = game_data.get("mian.py", "main.py") # Domyślnie main.py
+        
+        full_path = os.path.join(game_path, main_file)
+
+        if os.path.exists(full_path):
+            try:
+                print(f"Launching {folder_name} via {full_path}...")
+                
+                # Używamy sys.executable, aby gra uruchomiła się w tym samym środowisku Python
+                # subprocess.Popen nie blokuje launchera (gra działa "obok")
+                subprocess.Popen(
+                    [sys.executable, full_path],
+                    cwd=game_path, # Ustawienie katalogu roboczego na folder gry
+                    creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+                )
+                
+            except Exception as e:
+                print(f"Error launching game: {e}")
+        else:
+            print(f"Error: Could not find startup file at {full_path}")

@@ -7,6 +7,7 @@ class StateManager:
         s.launcher = launcher
         s.states = {}
         s.active_state = None
+        s.ui_focus = 'content'
 
     def add_state(s, name, state_object):
         """Dodaje stan do managera."""
@@ -23,15 +24,31 @@ class StateManager:
 
     def handling_events(s, events):
         """Przekazuje eventy do aktywnego stanu."""
-        if s.active_state:
-            s.active_state.handling_events(events)
+        keys = pygame.key.get_just_pressed()
+
+        # Globalny klawisz wyjścia z sidebaru
+        if keys[pygame.K_TAB]:
+            s.ui_focus = "sidebar" if s.ui_focus != "sidebar" else "content"
+
+        if s.ui_focus == "sidebar":
+            s.launcher.sidebar.handle_input(keys)
+        else:
+            # Jeśli focus to 'content' LUB 'searchbar', przekaż do stanu
+            if s.active_state:
+                s.active_state.handling_events(events)
 
     def update(s, delta_time):
         """Aktualizuje logikę aktywnego stanu."""
+
+        s.launcher.sidebar.update(delta_time)
+
         if s.active_state:
             s.active_state.update(delta_time)
 
     def draw(s, window):
         """Rysuje aktywny stan."""
+
         if s.active_state:
             s.active_state.draw(window)
+
+        s.launcher.sidebar.draw(window)

@@ -18,7 +18,13 @@ class Sidebar:
         self.icons = {}  # state_name -> Surface
 
         # ---- OPTIONS ----
-        self.options = list(self.launcher.state_manager.states.keys())
+        self.options = [
+            "Library",
+            "Store",
+            "Options",
+            "Exit"
+        ]
+
 
     # ===============================
     # ICON LOADING
@@ -36,24 +42,34 @@ class Sidebar:
     # INPUT
     # ===============================
 
-    def handle_input(self, keys, ui_focus):
-        if ui_focus != "sidebar" or not self.options:
+    def handle_input(self, keys):
+        if not self.options:
             return
 
         if keys[pygame.K_DOWN]:
             self.index = (self.index + 1) % len(self.options)
+
         elif keys[pygame.K_UP]:
             self.index = (self.index - 1) % len(self.options)
+
+        elif keys[pygame.K_RIGHT]:
+            self.launcher.state_manager.ui_focus = 'content'
+
         elif keys[pygame.K_RETURN]:
-            self.launcher.state_manager.set_state(self.options[self.index])
+            self.launcher.state_manager.set_state(
+                self.options[self.index]
+            )
+            self.launcher.state_manager.ui_focus = 'content'
 
     # ===============================
     # UPDATE
     # ===============================
 
-    def update(self, delta, ui_focus):
+    def update(self, delta):
+        ui_focus = self.launcher.state_manager.ui_focus
         target = self.expanded_w if ui_focus == "sidebar" else self.base_w
         self.current_w += (target - self.current_w) * 12 * delta
+
 
     # ===============================
     # DRAW
@@ -61,7 +77,6 @@ class Sidebar:
 
     def draw(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
-        self.options = list(self.launcher.state_manager.states.keys())
 
         # ---- BACKGROUND ----
         pygame.draw.rect(window, theme['colour_4'], (0, 0, int(self.current_w), WINDOW_HEIGHT))

@@ -12,6 +12,7 @@ from Tools.data_loading_tools import load_data, save_data
 #IMPROTING STATES AND STATE MANAGERS
 from Tools.game_installer import GameInstaller
 from States.state_manager import StateManager
+from UI.sidebar import Sidebar
 from States.library import Library
 from States.store import Store
 from States.options import Options
@@ -59,6 +60,7 @@ class Launcher:
         #CREATING STATE MANAGER AND STATES
         s.state_manager = StateManager(s)
         s.creating_states()
+        s.sidebar = Sidebar(s)
 
         #GAME PROCESS
         s.game_process = None

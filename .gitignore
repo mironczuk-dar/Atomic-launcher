@@ -1,3 +1,11 @@
 .DS_Store
 **/__pycache__/
 *.pyc
+
+# --- ATOMIC LAUNCHER SPECIFIC ---
+# Ignoruj zainstalowane gry (nie chcemy ich w repozytorium)
+Atomic-launcher/games/
+
+# Ignoruj lokalne dane, ustawienia i manifesty pobranych gier
+Atomic-launcher/data/
+Atomic-launcher/Store/games-manifest.json

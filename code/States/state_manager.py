@@ -27,7 +27,7 @@ class StateManager:
         keys = pygame.key.get_just_pressed()
 
         # Globalny klawisz wyjścia z sidebaru
-        if keys[pygame.K_TAB]:
+        if keys[s.launcher.controlls_data['options']]:
             s.ui_focus = "sidebar" if s.ui_focus != "sidebar" else "content"
 
         if s.ui_focus == "sidebar":

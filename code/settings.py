@@ -9,6 +9,20 @@ from os.path import join, dirname, abspath
 BASE_DIR = dirname(dirname(abspath(__file__)))
 GAMES_DIR = join(BASE_DIR, 'games')
 
+#CONTROLLS SETTIGNS
+CONTROLLS_DATA_PATH = join(BASE_DIR, 'data', 'controlls_data.json')
+DEFAULT_CONTROLLS_DATA = {
+    'up' : pygame.K_UP,
+    'down' : pygame.K_DOWN,
+    'left' : pygame.K_LEFT,
+    'right' : pygame.K_RIGHT,
+    'options' : pygame.K_TAB,
+    'action_a' : pygame.K_r,
+    'action_b' : pygame.K_e,
+    'action_x' : pygame.K_w,
+    'action_y' : pygame.K_q
+}
+
 #SCREEN / WINDOW SETTINGS
 WINDOW_DATA_PATH = join(BASE_DIR, 'data', 'window_data.json')
 WINDOW_WIDTH = 1600

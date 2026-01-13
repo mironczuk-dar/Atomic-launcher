@@ -110,7 +110,7 @@ class Store(BaseState):
 
         # ---------- OFFLINE MODE ----------
         if not self.online:
-            if keys[pygame.K_TAB] or keys[pygame.K_LEFT]:
+            if keys[self.launcher.controlls_data['options']] or keys[self.launcher.controlls_data['left']]:
                 sm.ui_focus = "sidebar"
             return
 
@@ -125,21 +125,21 @@ class Store(BaseState):
 
         # ---------- CONTENT (GAMES) ----------
         if sm.ui_focus == "content":
-            if keys[pygame.K_UP]:
+            if keys[self.launcher.controlls_data['up']]:
                 if self.selected_index == 0:
                     sm.ui_focus = "searchbar"
                     self.searchbar.active = True
                 else:
                     self.selected_index = max(0, self.selected_index - 1)
 
-            elif keys[pygame.K_DOWN]:
+            elif keys[self.launcher.controlls_data['down']]:
                 if self.entries:
                     self.selected_index = min(len(self.entries) - 1, self.selected_index + 1)
 
-            elif keys[pygame.K_LEFT]:
+            elif keys[self.launcher.controlls_data['left']]:
                 sm.ui_focus = "sidebar"
 
-            elif keys[pygame.K_RETURN]:
+            elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
                 self.install_or_update_selected()
 
     # ==================================================

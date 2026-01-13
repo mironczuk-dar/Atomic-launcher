@@ -1,6 +1,3 @@
-# ==========================
-# library.py
-# ==========================
 import pygame
 import os
 import subprocess
@@ -18,110 +15,104 @@ class Library(BaseState):
     def __init__(self, launcher):
         super().__init__(launcher)
 
-        # ---------- LOCAL UI ----------
+        #LIBRARY UI ELEMENTS
         self.bottombar_visible = False
         self.selected_bottombar_index = 0
 
-        # ---------- LOAD MANIFEST ----------
+        #LOADING IN GAMES MANIFEST
         self.manifest_path = os.path.join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
         self.manifest = self.load_manifest()
 
-        # ---------- GAMES ----------
+        #LOGIC ATTRIBUTES FOR GAMES SHOWN
         self.games_list = []
         self.filtered_games = []
         self.selected_index = 0
 
-        # ---------- SEARCHBAR ----------
+        #SEARCHBAR
         self.searchbar = SearchBar(
             launcher,
             on_change=self.apply_search_filter
         )
 
-        # ---------- FONTS ----------
+        #FONTS
         self.game_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.05), bold=True)
         self.bottombar_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.025))
 
-        # ---------- LAYOUT ----------
+        #LAYOUT ATTRIBUTES
         self.topbar_h = int(WINDOW_HEIGHT * 0.1)
         self.icon_w = int(WINDOW_WIDTH * 0.2)
         self.spacing = 60
-        self.scroll_speed = 8 # Nieco szybszy scroll dla responsywności
+        self.scroll_speed = 8
         self.current_scroll = 0
 
+        #ICON GROUPS
         self.icon_group = pygame.sprite.Group()
         self.game_icons = {}
 
-        # ---------- BOTTOM BAR ACTIONS ----------
+        #BOTTOM BAR LOGIC AND ACTIONS
         self.bottombar_actions = [
             {"label": "Export Save", "callback": self.export_save_file},
             {"label": "Add to Favorites", "callback": self.add_to_favorites},
             {"label": "Uninstall", "callback": self.uninstall_game},
         ]
 
-        self.refresh_library()
 
-    # ==================================================
-    # INPUT
-    # ==================================================
+    #METHOD FOR HANDLING INPUT
     def handling_events(self, events):
-        sm = self.launcher.state_manager
+        state_manager = self.launcher.state_manager
         
-        # ⛔ NIE reagujemy, jeśli focus ≠ content (np. gdy sidebar ma focus)
-        if sm.ui_focus != "content":
+        #SIDEBAR HAS TO BE FOCUSED ON CONTENT TO MOVE THE LIBRARY UI
+        if state_manager.ui_focus != "content":
             return
 
+        #GETTING ALL KEYS PRESSED BY PLAYER
         keys = pygame.key.get_just_pressed()
 
-        # ---------- SEARCH ----------
+        #INPUT FOR THE SEARCHBAR
         if self.searchbar.active:
             if self.searchbar.handle_events(events):
                 self.searchbar.active = False
             return
 
-        # ---------- BOTTOM BAR TOGGLE ----------
-        if keys[pygame.K_e] and self.filtered_games:
+        #TOGGLING THE BOTTOM BAR
+        if keys[self.launcher.controlls_data['action_b']] and self.filtered_games:
             self.bottombar_visible = not self.bottombar_visible
             return
 
-        # ---------- BOTTOM BAR NAV ----------
+        #BOTTOM BAR NAVIGATION
         if self.bottombar_visible:
             if keys[pygame.K_ESCAPE]:
                 self.bottombar_visible = False
-            elif keys[pygame.K_UP]:
+            elif keys[self.launcher.controlls_data['up']]:
                 self.selected_bottombar_index = max(0, self.selected_bottombar_index - 1)
-            elif keys[pygame.K_DOWN]:
+            elif keys[self.launcher.controlls_data['down']]:
                 self.selected_bottombar_index = min(
                     len(self.bottombar_actions) - 1,
                     self.selected_bottombar_index + 1
                 )
-            elif keys[pygame.K_RETURN]:
+            elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
                 self.bottombar_actions[self.selected_bottombar_index]["callback"]()
             return
 
-        # ---------- CONTENT NAV ----------
-        if keys[pygame.K_LEFT]:
+        #CONTENT NAVIGATION
+        if keys[self.launcher.controlls_data['left']]:
             if self.selected_index == 0:
-                sm.ui_focus = "sidebar" # Przejście do sidebaru strzałką w lewo
+                state_manager.ui_focus = "sidebar"
             else:
                 self.selected_index -= 1
-        elif keys[pygame.K_RIGHT]:
+        elif keys[self.launcher.controlls_data['right']]:
             self.selected_index = min(len(self.filtered_games) - 1, self.selected_index + 1)
-        elif keys[pygame.K_RETURN]:
+        elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
             self.launch_game()
-        elif keys[pygame.K_UP]:
+        elif keys[self.launcher.controlls_data['up']]:
             self.searchbar.active = True
 
-    # ==================================================
-    # UPDATE
-    # ==================================================
+    #METHOD FOR UPDATING THE LIBRARY
     def update(self, delta_time):
         super().update(delta_time)
-        # Płynny scroll do zaznaczonej gry
         self.current_scroll += (self.selected_index - self.current_scroll) * self.scroll_speed * delta_time
 
-    # ==================================================
-    # DRAW
-    # ==================================================
+    #METHOD FOR DRAWING THE CLASS
     def draw(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
         window.fill(theme['colour_1'])
@@ -132,11 +123,11 @@ class Library(BaseState):
         if self.bottombar_visible:
             self.draw_bottombar(window)
 
-        # Rysujemy searchbar (z przesunięciem o base_w sidebaru)
         self.searchbar.draw(window, focused=self.searchbar.active)
 
         super().draw(window)
 
+    #METHOD FOR DRAWING GAMES ICONS WITH FILTER SEARCH
     def draw_game_icons(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
 
@@ -163,22 +154,22 @@ class Library(BaseState):
             icon.draw(window)
 
             if i == self.selected_index:
-                # TUTAJ POBIERAMY NAZWĘ Z MANIFESTU
                 display_name = self.get_game_display_name(folder_name)
                 text = self.game_font.render(display_name.upper(), True, theme['colour_3'])
                 text_rect = text.get_rect(center=(x, y - self.icon_w // 2 - 60))
                 window.blit(text, text_rect)
 
+    #METHOD FOR DRAWING TOPBAR
     def draw_topbar(self, window):
-        # Topbar maskujący ikony wjeżdżające na górę (opcjonalnie)
         pass
 
+    #METHOD FOR DRAWING BOTTOM BAR
     def draw_bottombar(self, window):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
         panel_h = 140
         sidebar_w = self.launcher.sidebar.base_w
 
-        # Tło dolnego panelu
+        #BOTTOM BAR BACKGROUND
         pygame.draw.rect(
             window,
             theme['colour_2'],

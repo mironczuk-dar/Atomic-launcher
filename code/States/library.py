@@ -68,10 +68,6 @@ class Library(BaseState):
 
         if s.launcher.state_manager.ui_focus != 'content':
             return
-        
-
-        #GETTING ALL KEYS PRESSED BY PLAYER
-        keys = pygame.key.get_just_pressed()
 
         #INPUT FOR THE SEARCHBAR
         if s.searchbar.active:

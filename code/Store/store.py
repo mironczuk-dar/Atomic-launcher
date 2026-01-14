@@ -85,10 +85,11 @@ class Store(BaseState):
     def handling_events(s, events):
         keys = pygame.key.get_just_pressed()
         state_manager = s.launcher.state_manager
+        controlls = s.launcher.controlls_data
 
         #IF YOU'RE OFFLINE YOU CAN ONLY LEAVE THE STORE
         if not s.online:
-            if keys[s.launcher.controlls_data['options']] or keys[s.launcher.controlls_data['left']]:
+            if keys[controlls['options']] or keys[controlls['left']]:
                 state_manager.ui_focus = "sidebar"
             return
 
@@ -117,8 +118,8 @@ class Store(BaseState):
             elif keys[s.launcher.controlls_data['left']]:
                 state_manager.ui_focus = "sidebar"
 
-            elif keys[pygame.K_RETURN] or keys[s.launcher.controlls_data['action_a']]:
-                s.install_or_update_selected()
+            elif keys[pygame.K_RETURN] or keys[controlls['action_a']]:
+                s.enter_game_preview()
 
     def update(s, delta_time):
         super().update(delta_time)
@@ -126,12 +127,16 @@ class Store(BaseState):
         if not s.online or not s.entries:
             return
 
-        target_y = s.entries[s.selected_index].rect.top
+        current_entry_y = 150 + s.selected_index * (s.entry_height + s.spacing)
+        
+        padding_top = 160
+        padding_bottom = 50 
 
-        if target_y < s.scroll + 150:
-            s.scroll -= s.scroll_speed * delta_time
-        elif target_y + s.entry_height > s.scroll + WINDOW_HEIGHT - 50:
-            s.scroll += s.scroll_speed * delta_time
+        if current_entry_y + s.entry_height > s.scroll + WINDOW_HEIGHT - padding_bottom:
+            s.scroll = current_entry_y + s.entry_height - WINDOW_HEIGHT + padding_bottom
+
+        if current_entry_y < s.scroll + padding_top:
+            s.scroll = current_entry_y - padding_top
 
         s.scroll = max(0, s.scroll)
 
@@ -152,7 +157,7 @@ class Store(BaseState):
         for i, entry in enumerate(s.entries):
             selected = i == s.selected_index and s.launcher.state_manager.ui_focus == "content"
             entry.icon.set_selected(selected)
-            entry.rect.top = 150 + i * (s.entry_height + s.spacing) - s.scroll
+            entry.rect.top = 180 + i * (s.entry_height + s.spacing) - s.scroll
             entry.draw(window)
 
         #DRAWING SEARCHBAR
@@ -173,22 +178,17 @@ class Store(BaseState):
         s.scroll = 0
         s.load_store_entries()
 
-    def install_or_update_selected(s):
+    def enter_game_preview(s):
         if not s.entries:
             return
 
         entry = s.entries[s.selected_index]
-        game_id = entry.game_id
-        data = entry.game_data
-        manifest_version = data.get("version")
-
-        if entry.status == GameStatus.NOT_INSTALLED:
-            s.launcher.installer.install(game_id, data["repo"], manifest_version)
-
-        elif entry.status == GameStatus.UPDATE_AVAILABLE:
-            s.launcher.installer.update(game_id, manifest_version)
-
-        s.load_store_entries()
+        
+        preview_state = s.launcher.state_manager.states.get('Game preview')
+        
+        if preview_state:
+            preview_state.setup(entry.game_id, entry.game_data)
+            s.launcher.state_manager.set_state('Game preview')
 
     def on_enter(s):
         s.online = s.launcher.checking_internet_connection()

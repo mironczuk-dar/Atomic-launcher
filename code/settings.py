@@ -25,11 +25,11 @@ DEFAULT_CONTROLLS_DATA = {
 
 #SCREEN / WINDOW SETTINGS
 WINDOW_DATA_PATH = join(BASE_DIR, 'data', 'window_data.json')
-WINDOW_WIDTH = 1600
-WINDOW_HEIGHT = 960
+WINDOW_WIDTH = 1920
+WINDOW_HEIGHT = 1080
 DEFUALT_WINDOW_DATA = {
-    'width' : 800,
-    'height' : 480,
+    'width' : 1280,
+    'height' : 720,
     'fullscreen' : False,
     'fps' : 60,
     'show_fps' : False,

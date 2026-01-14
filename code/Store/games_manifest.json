@@ -5,8 +5,9 @@
     "repo": "https://github.com/mironczuk-dar/Zelda.git",
     "branch": "main",
     "version": "1.0.0",
-    "icon": "zelda.png",
-    "description": "You acctually play as Zelda.. Or a version of her."
+    "description": "You acctually play as Zelda.. Or a version of her.",
+    "tags" : ["adventure", "pixel-art", "rpg"],
+    "game_type": "Adventure"
   },
   "flappy_bird": {
     "name": "Flappy Bird",
@@ -14,8 +15,9 @@
     "repo": "https://github.com/mironczuk-dar/Flappy-bird.git",
     "branch": "main",
     "version": "1.0.1",
-    "icon": "flappy_bird.png",
-    "description": "Get over the pipes!"
+    "description": "Get over the pipes!",
+    "tags" : ["arcade"],
+    "game_type": "Arcade"
   },
   "infinite_runner": {
     "name": "Infinite runner",
@@ -23,8 +25,9 @@
     "repo": "https://github.com/mironczuk-dar/Infinite-runner.git",
     "branch": "main",
     "version": "1.0.1",
-    "icon": "infinite_runner.png",
-    "description": "Just keep running."
+    "description": "Just keep running.",
+    "tags" : ["arcade"],
+    "game_type": "Arcade"
   },
   "space_invaders": {
     "name": "Space Invaders",
@@ -32,8 +35,9 @@
     "repo": "https://github.com/mironczuk-dar/Spcae-invaders.git",
     "branch": "main",
     "version": "1.0.0",
-    "icon": "space_invaders.png",
-    "description": "A game about space!"
+    "description": "A game about space!",
+    "tags" : ["arcade"],
+    "game_type": "Arcade"
   },
   "snake": {
     "name": "Snake",
@@ -41,8 +45,8 @@
     "repo": "https://github.com/mironczuk-dar/Snake.git",
     "branch": "main",
     "version": "1.0.0",
-    "icon": "snake.png",
-    "description": "Don't eat your own tail..."
-
+    "description": "Don't eat your own tail...",
+    "tags" : ["arcade"],
+    "game_type": "Arcade"
   }
 }

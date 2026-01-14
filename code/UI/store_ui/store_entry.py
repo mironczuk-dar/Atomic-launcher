@@ -29,7 +29,7 @@ class StoreEntry(pygame.sprite.Sprite):
 
         # ---------- ICON ----------
         self.icon_size = self.height - 20
-        icon_path = join(BASE_DIR, 'assets', 'store_assets', 'game_icons', f'{game_id}')
+        icon_path = join(BASE_DIR, 'assets', 'store_assets', f'{game_id}', 'icon')
 
         self.icon = GameIcon(
             launcher=self.launcher,
@@ -41,9 +41,10 @@ class StoreEntry(pygame.sprite.Sprite):
         )
 
         # ---------- FONTS ----------
-        self.title_font = pygame.font.Font(None, 32)
-        self.meta_font = pygame.font.Font(None, 22)
-        self.desc_font = pygame.font.Font(None, 20)
+        self.title_font = pygame.font.Font(None, 120)
+        self.meta_font = pygame.font.Font(None, 52)
+        self.desc_font = pygame.font.Font(None, 50)
+        self.font_small = pygame.font.Font(None, 55)
 
     # =========================
     def _layout(self):
@@ -79,6 +80,7 @@ class StoreEntry(pygame.sprite.Sprite):
             y += line.get_height() + 2
 
         self._draw_status_badge(surface, theme)
+        self.draw_tags(surface)
 
     # =========================
     def _draw_status_badge(self, surface, theme):
@@ -115,3 +117,13 @@ class StoreEntry(pygame.sprite.Sprite):
             lines.append(self.desc_font.render(current, True, colour))
 
         return lines
+    
+    def draw_tags(self, window):
+        x_offset = self.rect.left + 350 # obok ikony
+        for tag in self.game_data.get('tags', []):
+            tag_surf = self.font_small.render(tag, True, 'white')
+            tag_rect = tag_surf.get_rect(topleft=(x_offset, self.rect.bottom - 60))
+            # Rysowanie tła tagu
+            pygame.draw.rect(window, '#444444', tag_rect.inflate(10, 5), border_radius=5)
+            window.blit(tag_surf, tag_rect)
+            x_offset += tag_rect.width + 20

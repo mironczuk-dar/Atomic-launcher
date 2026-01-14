@@ -14,8 +14,9 @@ from Tools.game_installer import GameInstaller
 from States.state_manager import StateManager
 from UI.sidebar import Sidebar
 from States.library import Library
-from States.store import Store
+from Store.store import Store
 from States.options import Options
+from Store.game_preview import GamePreview
 
 
 #LAUNCHER CLASS
@@ -92,6 +93,7 @@ class Launcher:
         s.state_manager.add_state('Library', Library(s))
         s.state_manager.add_state('Store', Store(s))
         s.state_manager.add_state('Options', Options(s))
+        s.state_manager.add_state('Game preview', GamePreview(s))
 
         #SETTING CURRENT STATE
         s.state_manager.set_state('Library')

@@ -4,7 +4,7 @@
 
 # --- ATOMIC LAUNCHER SPECIFIC ---
 # Ignoruj zainstalowane gry (nie chcemy ich w repozytorium)
-Atomic-launcher/games/
+Atomic-launcher/games/*
 
 # Ignoruj lokalne dane, ustawienia i manifesty pobranych gier
 Atomic-launcher/data/

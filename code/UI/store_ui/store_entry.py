@@ -29,7 +29,8 @@ class StoreEntry(pygame.sprite.Sprite):
 
         # ---------- ICON ----------
         self.icon_size = self.height - 20
-        icon_path = join(BASE_DIR, "assets", "store_assets", "game_icons", f"{game_id}.png")
+        icon_path = join(BASE_DIR, 'assets', 'store_assets', 'game_icons', f'{game_id}')
+        print(icon_path)
 
         self.icon = GameIcon(
             launcher=self.launcher,
@@ -37,7 +38,7 @@ class StoreEntry(pygame.sprite.Sprite):
             game_id=game_id,
             size=self.icon_size,
             source="store",
-            icon_path=icon_path
+            path=icon_path
         )
 
         # ---------- FONTS ----------
@@ -96,7 +97,6 @@ class StoreEntry(pygame.sprite.Sprite):
             (self.rect.right - badge.get_width() - 15,
             self.rect.top + 15)
         )
-
 
     # =========================
     def _wrap(self, text, colour):

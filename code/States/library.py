@@ -1,3 +1,4 @@
+#IMPORTING LIBRARIES
 import pygame
 import os
 import subprocess
@@ -5,284 +6,193 @@ import sys
 import json
 import shutil
 
+#IMPORTING FILES
 from States.generic_state import BaseState
 from settings import GAMES_DIR, BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
 from UI.searchbar import SearchBar
 from UI.game_icon import GameIcon
+from UI.library_ui.bottombar import BottomBar
+
+#IMPORTING TOOLS
+from Tools.data_loading_tools import load_data
 
 
 class Library(BaseState):
-    def __init__(self, launcher):
+    def __init__(s, launcher):
         super().__init__(launcher)
 
-        #LIBRARY UI ELEMENTS
-        self.bottombar_visible = False
-        self.selected_bottombar_index = 0
-
         #LOADING IN GAMES MANIFEST
-        self.manifest_path = os.path.join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
-        self.manifest = self.load_manifest()
+        s.manifest_path = os.path.join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
+        s.manifest = load_data(s.manifest_path, {})
 
         #LOGIC ATTRIBUTES FOR GAMES SHOWN
-        self.games_list = []
-        self.filtered_games = []
-        self.selected_index = 0
+        s.game_library = []
+        s.game_icons = {}
+        s.filtered_games = []
+        s.selected_index = 0
 
-        #SEARCHBAR
-        self.searchbar = SearchBar(
+        #LIBRARY UI ELEMENTS
+        s.searchbar = SearchBar(
             launcher,
-            on_change=self.apply_search_filter
+            on_change = s.apply_search_filter
         )
+        s.bottombar = BottomBar(launcher, s)
 
         #FONTS
-        self.game_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.05), bold=True)
-        self.bottombar_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.025))
+        s.icon_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.05), bold = False)
 
         #LAYOUT ATTRIBUTES
-        self.topbar_h = int(WINDOW_HEIGHT * 0.1)
-        self.icon_w = int(WINDOW_WIDTH * 0.2)
-        self.spacing = 60
-        self.scroll_speed = 8
-        self.current_scroll = 0
+        s.topbar_h = int(WINDOW_HEIGHT * 0.1)
+        s.icon_w = int(WINDOW_WIDTH * 0.2)
+        s.spacing = 60
+        s.scroll_speed = 8
+        s.current_scroll = 0
 
         #ICON GROUPS
-        self.icon_group = pygame.sprite.Group()
-        self.game_icons = {}
-
-        #BOTTOM BAR LOGIC AND ACTIONS
-        self.bottombar_actions = [
-            {"label": "Export Save", "callback": self.export_save_file},
-            {"label": "Add to Favorites", "callback": self.add_to_favorites},
-            {"label": "Uninstall", "callback": self.uninstall_game},
-        ]
-
+        s.icon_group = pygame.sprite.Group()
 
     #METHOD FOR HANDLING INPUT
-    def handling_events(self, events):
-        state_manager = self.launcher.state_manager
-        
-        #SIDEBAR HAS TO BE FOCUSED ON CONTENT TO MOVE THE LIBRARY UI
-        if state_manager.ui_focus != "content":
+    def handling_events(s, events):
+        controlls = s.launcher.controlls_data
+        keys = pygame.key.get_just_pressed()
+
+        #BOTTOMBAR NAVIGATION
+        if s.bottombar.visible:
+            s.bottombar.handling_events()
             return
+        
+        if keys[controlls['action_b']]:
+            s.bottombar.open_bottombar()
+            return
+        
+
+        if s.launcher.state_manager.ui_focus != 'content':
+            return
+        
 
         #GETTING ALL KEYS PRESSED BY PLAYER
         keys = pygame.key.get_just_pressed()
 
         #INPUT FOR THE SEARCHBAR
-        if self.searchbar.active:
-            if self.searchbar.handle_events(events):
-                self.searchbar.active = False
+        if s.searchbar.active:
+            if s.searchbar.handle_events(events):
+                s.searchbar.active = False
             return
 
-        #TOGGLING THE BOTTOM BAR
-        if keys[self.launcher.controlls_data['action_b']] and self.filtered_games:
-            self.bottombar_visible = not self.bottombar_visible
-            return
-
-        #BOTTOM BAR NAVIGATION
-        if self.bottombar_visible:
-            if keys[pygame.K_ESCAPE]:
-                self.bottombar_visible = False
-            elif keys[self.launcher.controlls_data['up']]:
-                self.selected_bottombar_index = max(0, self.selected_bottombar_index - 1)
-            elif keys[self.launcher.controlls_data['down']]:
-                self.selected_bottombar_index = min(
-                    len(self.bottombar_actions) - 1,
-                    self.selected_bottombar_index + 1
-                )
-            elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
-                self.bottombar_actions[self.selected_bottombar_index]["callback"]()
-            return
 
         #CONTENT NAVIGATION
-        if keys[self.launcher.controlls_data['left']]:
-            if self.selected_index == 0:
-                state_manager.ui_focus = "sidebar"
+        if keys[s.launcher.controlls_data['left']]:
+            if s.selected_index == 0:
+                s.launcher.state_manager.ui_focus = "sidebar"
             else:
-                self.selected_index -= 1
-        elif keys[self.launcher.controlls_data['right']]:
-            self.selected_index = min(len(self.filtered_games) - 1, self.selected_index + 1)
-        elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
-            self.launch_game()
-        elif keys[self.launcher.controlls_data['up']]:
-            self.searchbar.active = True
+                s.selected_index -= 1
+
+        elif keys[controlls['right']]:
+            s.selected_index = min(len(s.filtered_games) - 1, s.selected_index + 1)
+        
+        elif keys[pygame.K_RETURN] or keys[controlls['action_a']]:
+            s.launch_game()
+        
+        elif keys[controlls['up']]:
+            s.searchbar.active = True
 
     #METHOD FOR UPDATING THE LIBRARY
-    def update(self, delta_time):
+    def update(s, delta_time):
         super().update(delta_time)
-        self.current_scroll += (self.selected_index - self.current_scroll) * self.scroll_speed * delta_time
+        s.current_scroll += (s.selected_index - s.current_scroll) * s.scroll_speed * delta_time
 
     #METHOD FOR DRAWING THE CLASS
-    def draw(self, window):
-        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
+    def draw(s, window):
+        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         window.fill(theme['colour_1'])
 
-        self.draw_game_icons(window)
-        self.draw_topbar(window)
+        s.draw_game_icons_titles(window)
 
-        if self.bottombar_visible:
-            self.draw_bottombar(window)
-
-        self.searchbar.draw(window, focused=self.searchbar.active)
+        s.bottombar.draw(window)
+        s.searchbar.draw(window, focused=s.searchbar.active)
 
         super().draw(window)
 
-    #METHOD FOR DRAWING GAMES ICONS WITH FILTER SEARCH
-    def draw_game_icons(self, window):
-        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
+    #METHOD FOR DRAWING GAMES ICON TITLES
+    def draw_game_icons_titles(s, window):
+        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
 
-        if not self.filtered_games:
-            msg = self.game_font.render("NO GAMES INSTALLED", True, theme['colour_2'])
-            rect = msg.get_rect(center=((WINDOW_WIDTH + self.launcher.sidebar.base_w) // 2, WINDOW_HEIGHT // 2))
+        if not s.filtered_games:
+            msg = s.icon_font.render("NO GAMES INSTALLED", True, theme['colour_2'])
+            rect = msg.get_rect(center=((WINDOW_WIDTH + s.launcher.sidebar.base_w) // 2, WINDOW_HEIGHT // 2))
             window.blit(msg, rect)
             return
 
-        sidebar_w = self.launcher.sidebar.base_w
+        sidebar_w = s.launcher.sidebar.base_w
         workspace_center_x = sidebar_w + (WINDOW_WIDTH - sidebar_w) // 2
         center_y = WINDOW_HEIGHT // 2
 
-        for i, folder_name in enumerate(self.filtered_games):
-            icon = self.game_icons.get(folder_name)
+        for i, folder_name in enumerate(s.filtered_games):
+            icon = s.game_icons.get(folder_name)
             if not icon: continue
 
-            offset = (i - self.current_scroll) * (self.icon_w + self.spacing)
+            offset = (i - s.current_scroll) * (s.icon_w + s.spacing)
             x = workspace_center_x + offset
             y = center_y
 
             icon.set_position(x, y)
-            icon.set_selected(i == self.selected_index)
+            icon.set_selected(i == s.selected_index)
             icon.draw(window)
 
-            if i == self.selected_index:
-                display_name = self.get_game_display_name(folder_name)
-                text = self.game_font.render(display_name.upper(), True, theme['colour_3'])
-                text_rect = text.get_rect(center=(x, y - self.icon_w // 2 - 60))
+            if i == s.selected_index:
+                display_name = s.get_game_display_name(folder_name)
+                text = s.icon_font.render(display_name.upper(), True, theme['colour_3'])
+                text_rect = text.get_rect(center=(x, y - s.icon_w // 2 - 60))
                 window.blit(text, text_rect)
 
-    #METHOD FOR DRAWING TOPBAR
-    def draw_topbar(self, window):
-        pass
-
-    #METHOD FOR DRAWING BOTTOM BAR
-    def draw_bottombar(self, window):
-        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
-        panel_h = 140
-        sidebar_w = self.launcher.sidebar.base_w
-
-        #BOTTOM BAR BACKGROUND
-        pygame.draw.rect(
-            window,
-            theme['colour_2'],
-            (sidebar_w, WINDOW_HEIGHT - panel_h, WINDOW_WIDTH - sidebar_w, panel_h)
-        )
-
-        x = WINDOW_WIDTH - 250
-        y = WINDOW_HEIGHT - panel_h + 20
-
-        for i, action in enumerate(self.bottombar_actions):
-            selected = i == self.selected_bottombar_index
-            color = theme['colour_4'] if selected else theme['colour_3']
-            label = f"> {action['label']}" if selected else action['label']
-            text = self.bottombar_font.render(label, True, color)
-            window.blit(text, (x, y + i * 35))
-
-    # ==================================================
-    # LOGIC
-    # ==================================================
-    def load_manifest(self):
-        # Poprawiona ścieżka zgodnie z Twoją strukturą: Atomic-launcher/Store/games-manifest.json
-        # Jeśli Store jest w folderze głównym obok code:
-        path = os.path.join(BASE_DIR, 'Store', 'games-manifest.json')
-        
-        if not os.path.exists(path):
-            print(f"Warning: Manifest not found at {path}")
-            return {}
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error loading manifest: {e}")
-            return {}
-
     def get_game_display_name(self, folder_name):
-        """Pobiera ładną nazwę z manifestu na podstawie nazwy folderu."""
         game_data = self.manifest.get(folder_name)
         if game_data and "name" in game_data:
             return game_data["name"]
-        return folder_name.replace("_", " ").title() # Fallback: infinite_runner -> Infinite Runner
+        return folder_name.replace("_", " ").title()
 
-    def refresh_library(self):
-        """Skanuje zainstalowane foldery i mapuje je na dane z manifestu."""
-        self.manifest = self.load_manifest() # Odśwież manifest przy wjeździe
+    #METHOD FOR GETTING GAMES LIBRARY DATA
+    def get_game_library(s):
+        s.manifest = load_data(s.manifest_path, {})
         
+        #CREATING A GAMES FOLDER IF FILES CORUPTED
         if not os.path.exists(GAMES_DIR):
             os.makedirs(GAMES_DIR)
-            self.games_list = []
+            s.game_library = []
+
+        #PLAYERS GAME LIBRARY
         else:
-            # Pobieramy foldery zainstalowanych gier
-            self.games_list = [
+            s.game_library = [
                 name for name in os.listdir(GAMES_DIR)
                 if os.path.isdir(os.path.join(GAMES_DIR, name))
             ]
 
-        # Aktualizacja ikon
-        for folder_name in self.games_list:
-            if folder_name not in self.game_icons:
-                self.game_icons[folder_name] = GameIcon(
-                    launcher=self.launcher,
-                    groups=self.icon_group,
-                    game_id=folder_name,
-                    size=self.icon_w,
-                    source="library"
-                )
+        #GETTING THE GAME ICONS
+        for game in s.game_library:
+            s.game_icons[game] = GameIcon(
+                launcher = s.launcher,
+                groups = s.icon_group,
+                game_id = game,
+                size = s.icon_w,
+                path = os.path.join(GAMES_DIR, game, 'assets', 'icon')
+            )
+            print(os.path.join(GAMES_DIR, game, 'icon'))
 
-        # Usuwanie nieistniejących ikon
-        current_icons = list(self.game_icons.keys())
-        for folder_name in current_icons:
-            if folder_name not in self.games_list:
-                del self.game_icons[folder_name]
+        s.apply_search_filter(s.searchbar.text)
 
-        self.apply_search_filter(self.searchbar.text)
-
-    def apply_search_filter(self, query):
+    def apply_search_filter(s, query):
         query = query.lower()
         
-        # Filtrujemy na podstawie ładnych nazw, a nie nazw folderów!
-        self.filtered_games = []
-        for folder_name in self.games_list:
-            display_name = self.get_game_display_name(folder_name)
+        s.filtered_games = []
+        for game_name in s.game_library:
+            display_name = s.get_game_display_name(game_name)
             if not query or query in display_name.lower():
-                self.filtered_games.append(folder_name)
+                s.filtered_games.append(game_name)
         
-        self.selected_index = 0
-
-    # ==================================================
-    # BOTTOM BAR ACTIONS
-    # ==================================================
-    def uninstall_game(self):
-        if not self.filtered_games: return
-        
-        game = self.filtered_games[self.selected_index]
-        game_path = os.path.join(GAMES_DIR, game)
-        
-        try:
-            if os.path.exists(game_path):
-                shutil.rmtree(game_path)
-                print(f"Uninstalled: {game}")
-                self.refresh_library()
-                self.bottombar_visible = False
-                self.selected_index = max(0, self.selected_index - 1)
-        except Exception as e:
-            print(f"Uninstall failed: {e}")
-
-    def add_to_favorites(self):
-        print("Feature coming soon: Favorites")
-
-    def export_save_file(self):
-        print("Feature coming soon: Save export")
+        s.selected_index = 0
 
     def on_enter(self):
-        self.refresh_library()
+        self.get_game_library()
 
     def launch_game(self):
         """Uruchamia wybraną grę w nowym procesie."""
@@ -292,21 +202,18 @@ class Library(BaseState):
         folder_name = self.filtered_games[self.selected_index]
         game_path = os.path.join(GAMES_DIR, folder_name, 'code')
         
-        # Pobieramy informacje o pliku startowym z manifestu
         game_data = self.manifest.get(folder_name, {})
-        main_file = game_data.get("mian.py", "main.py") # Domyślnie main.py
+        main_file = game_data.get("mian.py", "main.py")
         
         full_path = os.path.join(game_path, main_file)
 
         if os.path.exists(full_path):
             try:
                 print(f"Launching {folder_name} via {full_path}...")
-                
-                # Używamy sys.executable, aby gra uruchomiła się w tym samym środowisku Python
-                # subprocess.Popen nie blokuje launchera (gra działa "obok")
+
                 subprocess.Popen(
                     [sys.executable, full_path],
-                    cwd=game_path, # Ustawienie katalogu roboczego na folder gry
+                    cwd=game_path,
                     creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
                 )
                 

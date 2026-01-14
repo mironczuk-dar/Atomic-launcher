@@ -1,96 +1,77 @@
-# ==========================
-# store.py (FULL – ONLINE/OFFLINE SAFE)
-# ==========================
 import pygame
 import json
 from os.path import join
 
 from settings import BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
-from UI.store_entry import StoreEntry, GameStatus
+from UI.store_ui.store_entry import StoreEntry, GameStatus
 from UI.searchbar import SearchBar
 from States.generic_state import BaseState
+from Tools.data_loading_tools import load_data
 
 
 class Store(BaseState):
-    def __init__(self, launcher):
+    def __init__(s, launcher):
         super().__init__(launcher)
 
-        # ---------- INTERNET ----------
-        self.online = launcher.checking_internet_connection()
+        #INTERNET
+        s.online = launcher.checking_internet_connection()
 
-        # ---------- UI FOCUS ----------
-        self.ui_focus = "content"  # content | sidebar | searchbar
-
-        # ---------- SEARCHBAR ----------
-        self.searchbar = SearchBar(
+        #SEARCHBAR
+        s.searchbar = SearchBar(
             launcher,
-            on_change=self.apply_search_filter
+            on_change = s.apply_search_filter
         )
 
-        # ---------- DATA ----------
-        self.manifest = {}
-        self.all_games = []
-        self.filtered_games = []
-        self.entries = []
+        #DATA ATTRIBUES
+        s.manifest = {}
+        s.all_games = []
+        s.filtered_games = []
+        s.entries = []
 
-        self.selected_index = 0
-        self.entry_height = 300
-        self.spacing = 10
+        s.selected_index = 0
+        s.entry_height = 300
+        s.spacing = 10
 
-        self.scroll = 0
-        self.scroll_speed = 400
+        s.scroll = 0
+        s.scroll_speed = 400
 
-    # ==================================================
-    # DATA
-    # ==================================================
-    def load_manifest(self):
-        path = join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[Store] Failed to load manifest: {e}")
-            return {}
+        #LOADING IN GAMES MANIFEST
+        s.manifest_path = join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
+        s.manifest = load_data(s.manifest_path, {})
 
-    def _load_online_data(self):
-        self.manifest = self.load_manifest()
-        self.all_games = list(self.manifest.keys())
-        self.filtered_games = self.all_games.copy()
-        self.selected_index = 0
-        self.scroll = 0
-        self.load_store_entries()
 
-    def load_store_entries(self):
-        self.entries.clear()
 
-        if not self.online:
+    def load_store_entries(s):
+        s.entries.clear()
+
+        if not s.online:
             return
 
-        # Używamy base_w dla stabilnego layoutu zgodnie z poprzednim ustaleniem
-        fixed_sidebar_w = self.launcher.sidebar.base_w
+        fixed_sidebar_w = s.launcher.sidebar.base_w
         y = 150
 
-        for game_id in self.filtered_games:
-            data = self.manifest[game_id]
-            manifest_version = data.get("version")
+        for game_id in s.filtered_games:
+            data = s.manifest[game_id]
+            manifest_version = data.get('version')
 
-            # --- POPRAWKA: Definiowanie statusu ---
-            if not self.launcher.installer.is_installed(game_id):
+            #CHECKING GAME STATUS: DOWNLOAD | UPDATE | INSATALLED
+            if not s.launcher.installer.is_installed(game_id):
                 status = GameStatus.NOT_INSTALLED
-            elif self.launcher.installer.has_update(game_id, manifest_version):
+
+            elif s.launcher.installer.has_update(game_id, manifest_version):
                 status = GameStatus.UPDATE_AVAILABLE
+            
             else:
-                # Ważne: Musi być else, aby status zawsze istniał
                 status = GameStatus.INSTALLED
 
             entry = StoreEntry(
-                launcher=self.launcher,
-                game_id=game_id,
-                game_data=data,
-                status=status, # Teraz status zawsze jest zdefiniowany
+                launcher = s.launcher,
+                game_id = game_id,
+                game_data = data,
+                status = status,
                 size=(
                     WINDOW_WIDTH - fixed_sidebar_w - 100,
-                    self.entry_height
+                    s.entry_height
                 ),
                 position=(
                     fixed_sidebar_w + 50,
@@ -98,77 +79,68 @@ class Store(BaseState):
                 )
             )
 
-            self.entries.append(entry)
-            y += self.entry_height + self.spacing
+            s.entries.append(entry)
+            y += s.entry_height + s.spacing
 
-    # ==================================================
-    # INPUT
-    # ==================================================
-    def handling_events(self, events):
+    def handling_events(s, events):
         keys = pygame.key.get_just_pressed()
-        sm = self.launcher.state_manager # Skrót dla czytelności
+        state_manager = s.launcher.state_manager
 
-        # ---------- OFFLINE MODE ----------
-        if not self.online:
-            if keys[self.launcher.controlls_data['options']] or keys[self.launcher.controlls_data['left']]:
-                sm.ui_focus = "sidebar"
+        #IF YOU'RE OFFLINE YOU CAN ONLY LEAVE THE STORE
+        if not s.online:
+            if keys[s.launcher.controlls_data['options']] or keys[s.launcher.controlls_data['left']]:
+                state_manager.ui_focus = "sidebar"
             return
 
-        # ---------- SEARCHBAR LOGIC ----------
-        if sm.ui_focus == "searchbar":
-            # Searchbar potrzebuje surowych eventów (tekst), nie tylko keys
-            exited = self.searchbar.handle_events(events) 
+        #SEARCHBAR
+        if state_manager.ui_focus == "searchbar":
+            exited = s.searchbar.handle_events(events) 
             if exited:
-                sm.ui_focus = "content"
-                self.searchbar.active = False
+                state_manager.ui_focus = "content"
+                s.searchbar.active = False
             return
 
-        # ---------- CONTENT (GAMES) ----------
-        if sm.ui_focus == "content":
-            if keys[self.launcher.controlls_data['up']]:
-                if self.selected_index == 0:
-                    sm.ui_focus = "searchbar"
-                    self.searchbar.active = True
+        #CONTENT NAVIGATION
+        if state_manager.ui_focus == "content":
+
+            if keys[s.launcher.controlls_data['up']]: 
+                if s.selected_index == 0:
+                    state_manager.ui_focus = "searchbar"
+                    s.searchbar.active = True
                 else:
-                    self.selected_index = max(0, self.selected_index - 1)
+                    s.selected_index = max(0, s.selected_index - 1)
 
-            elif keys[self.launcher.controlls_data['down']]:
-                if self.entries:
-                    self.selected_index = min(len(self.entries) - 1, self.selected_index + 1)
+            elif keys[s.launcher.controlls_data['down']]:
+                if s.entries:
+                    s.selected_index = min(len(s.entries) - 1, s.selected_index + 1)
 
-            elif keys[self.launcher.controlls_data['left']]:
-                sm.ui_focus = "sidebar"
+            elif keys[s.launcher.controlls_data['left']]:
+                state_manager.ui_focus = "sidebar"
 
-            elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
-                self.install_or_update_selected()
+            elif keys[pygame.K_RETURN] or keys[s.launcher.controlls_data['action_a']]:
+                s.install_or_update_selected()
 
-    # ==================================================
-    # UPDATE
-    # ==================================================
-    def update(self, delta_time):
+    def update(s, delta_time):
         super().update(delta_time)
 
-        if not self.online or not self.entries:
+        if not s.online or not s.entries:
             return
 
-        target_y = self.entries[self.selected_index].rect.top
+        target_y = s.entries[s.selected_index].rect.top
 
-        if target_y < self.scroll + 150:
-            self.scroll -= self.scroll_speed * delta_time
-        elif target_y + self.entry_height > self.scroll + WINDOW_HEIGHT - 50:
-            self.scroll += self.scroll_speed * delta_time
+        if target_y < s.scroll + 150:
+            s.scroll -= s.scroll_speed * delta_time
+        elif target_y + s.entry_height > s.scroll + WINDOW_HEIGHT - 50:
+            s.scroll += s.scroll_speed * delta_time
 
-        self.scroll = max(0, self.scroll)
+        s.scroll = max(0, s.scroll)
 
-    # ==================================================
-    # DRAW
-    # ==================================================
-    def draw(self, window):
-        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
+    def draw(s, window):
+        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         window.fill(theme['colour_1'])
 
-        # ---------- OFFLINE SCREEN ----------
-        if not self.online:
+        #WHEN OFFLINE ONLY DRAW A MESSAGE ABOUT BEING OFFLINE
+        if not s.online:
             font = pygame.font.SysFont(None, 48)
             text = font.render("OFFLINE", True, theme['colour_4'])
             rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
@@ -176,63 +148,68 @@ class Store(BaseState):
             super().draw(window)
             return
 
-        # ---------- STORE ENTRIES ----------
-        for i, entry in enumerate(self.entries):
-            selected = i == self.selected_index and self.ui_focus == "content"
+        #DRAWING STORE ENTRIES
+        for i, entry in enumerate(s.entries):
+            selected = i == s.selected_index and s.launcher.state_manager.ui_focus == "content"
             entry.icon.set_selected(selected)
-            entry.rect.top = 150 + i * (self.entry_height + self.spacing) - self.scroll
+            entry.rect.top = 150 + i * (s.entry_height + s.spacing) - s.scroll
             entry.draw(window)
 
-        # ---------- SEARCHBAR ----------
-        self.searchbar.draw(window, focused=self.ui_focus in ("searchbar", "topbar"))
+        #DRAWING SEARCHBAR
+        s.searchbar.draw(window, focused=s.launcher.state_manager.ui_focus in ("searchbar", "topbar"))
 
         super().draw(window)
 
-    # ==================================================
-    # LOGIC
-    # ==================================================
-    def apply_search_filter(self, query):
-        if not self.online:
+    def apply_search_filter(s, query):
+        if not s.online:
             return
 
         query = query.lower()
-        self.filtered_games = (
-            [g for g in self.all_games if query in g.lower()]
-            if query else self.all_games.copy()
+        s.filtered_games = (
+            [g for g in s.all_games if query in g.lower()]
+            if query else s.all_games.copy()
         )
-        self.selected_index = 0
-        self.scroll = 0
-        self.load_store_entries()
+        s.selected_index = 0
+        s.scroll = 0
+        s.load_store_entries()
 
-    def install_or_update_selected(self):
-        if not self.entries:
+    def install_or_update_selected(s):
+        if not s.entries:
             return
 
-        entry = self.entries[self.selected_index]
+        entry = s.entries[s.selected_index]
         game_id = entry.game_id
         data = entry.game_data
         manifest_version = data.get("version")
 
         if entry.status == GameStatus.NOT_INSTALLED:
-            self.launcher.installer.install(game_id, data["repo"], manifest_version)
+            s.launcher.installer.install(game_id, data["repo"], manifest_version)
 
         elif entry.status == GameStatus.UPDATE_AVAILABLE:
-            self.launcher.installer.update(game_id, manifest_version)
+            s.launcher.installer.update(game_id, manifest_version)
 
-        self.load_store_entries()
+        s.load_store_entries()
 
-    # ==================================================
-    # STATE LIFECYCLE
-    # ==================================================
-    def on_enter(self):
-        self.online = self.launcher.checking_internet_connection()
+    def on_enter(s):
+        s.online = s.launcher.checking_internet_connection()
 
-        self.entries.clear()
-        self.manifest.clear()
-        self.all_games.clear()
-        self.filtered_games.clear()
-        self.scroll = 0
-        self.selected_index = 0
+        s.entries.clear()
+        s.manifest.clear()
+        s.all_games.clear()
+        s.filtered_games.clear()
+        s.scroll = 0
+        s.selected_index = 0
 
-        if self.online:
-            self._load_online_data()
+        #LOADING IN MANIFEST AGAIN IN CASE OF AN UPDATE WHILE LAUNCHER IS ON
+        s.manifest = load_data(s.manifest_path, {})
+
+        if s.online:
+            s._load_online_data()
+
+
+    def _load_online_data(s):
+        s.all_games = list(s.manifest.keys())
+        s.filtered_games = s.all_games.copy()
+        s.selected_index = 0
+        s.scroll = 0
+        s.load_store_entries()

@@ -1,5 +1,8 @@
-# IMPORTING FILES
+#IMPORTING LIBRARIES
 import pygame
+from sys import exit
+
+#IMPORTING FILES
 from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
 
 class Sidebar:
@@ -15,7 +18,7 @@ class Sidebar:
 
         # ---- ICONS ----
         self.icon_size = int(WINDOW_WIDTH * 0.035)
-        self.icons = {}  # state_name -> Surface
+        self.icons = {}
 
         # ---- OPTIONS ----
         self.options = [
@@ -60,6 +63,11 @@ class Sidebar:
                 self.options[self.index]
             )
             self.launcher.state_manager.ui_focus = 'content'
+
+            if self.index == len(self.options) - 1:
+                self.launcher.save()
+                pygame.quit()
+                exit()
 
     # ===============================
     # UPDATE

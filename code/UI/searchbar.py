@@ -1,11 +1,13 @@
 #IMPORTING LIBRARIES
 import pygame
+
+#IMPORTING FILES
 from settings import WINDOW_WIDTH, THEME_LIBRARY
 
 class SearchBar:
     def __init__(self, launcher, on_change):
         self.launcher = launcher
-        self.on_change = on_change  # callback
+        self.on_change = on_change
 
         self.active = False
         self.text = ""
@@ -18,17 +20,22 @@ class SearchBar:
     # =========================
 
     def handle_events(self, events):
+        controlls = self.launcher.controlls_data
+
         if not self.active:
             return False
 
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN or event.key == pygame.K_TAB:
+                
+                if event.key == controlls['right'] or event.key == controlls['options']:
                     self.active = False
-                    return True  # ← sygnał "wyszedłem"
+                    return True
+                
                 elif event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
                     self.on_change(self.text)
+                
                 else:
                     if event.unicode and len(event.unicode) == 1:
                         self.text += event.unicode

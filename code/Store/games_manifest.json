@@ -1,4 +1,22 @@
 {
+  "zelda": {
+    "name": "Zelda",
+    "author": "Clear Code",
+    "repo": "https://github.com/mironczuk-dar/Zelda.git",
+    "branch": "main",
+    "version": "1.0.0",
+    "icon": "zelda.png",
+    "description": "You acctually play as Zelda.. Or a version of her."
+  },
+  "flappy_bird": {
+    "name": "Flappy Bird",
+    "author": "Bird",
+    "repo": "https://github.com/mironczuk-dar/Flappy-bird.git",
+    "branch": "main",
+    "version": "1.0.1",
+    "icon": "flappy_bird.png",
+    "description": "Get over the pipes!"
+  },
   "infinite_runner": {
     "name": "Infinite runner",
     "author": "Duuudeee",

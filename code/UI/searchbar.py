@@ -28,7 +28,7 @@ class SearchBar:
         for event in events:
             if event.type == pygame.KEYDOWN:
                 
-                if event.key == controlls['right'] or event.key == controlls['options']:
+                if event.key == controlls['right'] or event.key == controlls['options'] or event.key == pygame.K_RETURN:
                     self.active = False
                     return True
                 
@@ -59,9 +59,15 @@ class SearchBar:
         if focused and self.active:
             border = theme['colour_3']
         elif focused:
-            border = theme['colour_4']
+            border = theme['colour_1']
         else:
-            border = theme['colour_2']
+            border = theme['colour_4']
+
+        pygame.draw.rect(
+            window,
+            theme['colour_2'],
+            (0, 0, WINDOW_WIDTH, bar_h+55),
+        )
 
         pygame.draw.rect(
             window,

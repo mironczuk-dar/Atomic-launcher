@@ -30,7 +30,6 @@ class StoreEntry(pygame.sprite.Sprite):
         # ---------- ICON ----------
         self.icon_size = self.height - 20
         icon_path = join(BASE_DIR, 'assets', 'store_assets', 'game_icons', f'{game_id}')
-        print(icon_path)
 
         self.icon = GameIcon(
             launcher=self.launcher,

@@ -176,7 +176,6 @@ class Library(BaseState):
                 size = s.icon_w,
                 path = os.path.join(GAMES_DIR, game, 'assets', 'icon')
             )
-            print(os.path.join(GAMES_DIR, game, 'icon'))
 
         s.apply_search_filter(s.searchbar.text)
 

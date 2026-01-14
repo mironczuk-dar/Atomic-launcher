@@ -31,7 +31,6 @@ class StateManager:
         else:
             if s.active_state:
                 s.active_state.handling_events(events)
-        print(s.active_state)
 
     def update(s, delta_time):
         s.launcher.sidebar.update(delta_time)

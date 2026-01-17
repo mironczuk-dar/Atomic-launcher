@@ -186,15 +186,11 @@ class Launcher:
         if s.game_running:
             s.delta_time = s.clock.tick(s.performance_settings_data['decrease_launcher_fps_when_game_active']) / 1000
         else:
-            s.delta_time = s.clock.tick(s.fps) / 1000
+            if s.fps is None:
+                s.delta_time = s.clock.tick() / 1000
+            else:
+                s.delta_time = s.clock.tick(s.fps) / 1000
 
-        # CHECKING IF GAME HAS ENDED
-        if s.game_running and s.game_process is not None:
-            if s.game_process.poll() is not None:
-                s.game_running = False
-                s.game_process = None
-                pygame.display.set_mode((s.window_data['width'], s.window_data['height']), s.flags)
-                print("Gra zamknięta. Przywrócono okno launchera.")
 
         # UPDATING CURRENT STATE
         s.state_manager.update(s.delta_time)

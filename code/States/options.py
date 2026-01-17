@@ -1,101 +1,124 @@
+#IMPORTING LIBRARIES
 import pygame
+
+#IMPORTING FILES
+from UI.options_ui.option_tabs import (
+    VideoOptionsTab,
+    ThemesOptionsTab,
+    ControlsOptionsTab,
+    PerformanceOptionsTab
+)
+from settings import THEME_LIBRARY, WINDOW_WIDTH, WINDOW_HEIGHT
 from States.generic_state import BaseState
-from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
+
 
 class Options(BaseState):
-    def __init__(self, launcher):
+
+    def __init__(s, launcher):
         super().__init__(launcher)
 
-        # -------------------
-        # TABS
-        # -------------------
-        self.tabs = ["Controls", "Video", "Themes"]
-        self.tab_index = 0
+        # ---------------- TABS ----------------
+        s.tabs = [
+            ('Video', VideoOptionsTab(launcher)),
+            ('Controlls', ControlsOptionsTab(launcher)),
+            ('Performance', PerformanceOptionsTab(launcher)),
+            ('Themes', ThemesOptionsTab(launcher)),
+        ]
 
-        # Czcionki
-        self.title_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.06), bold=True)
-        self.text_font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.04))
+        s.topbar_index = 0
 
-        # -------------------
-        # DUMMY SETTINGS
-        # -------------------
-        self.settings = {
-            "Controls": {"Move Up": "W", "Move Down": "S", "Jump": "Space"},
-            "Video": {"Resolution": "1920x1080", "Fullscreen": True},
-            "Themes": {"Current Theme": self.launcher.theme_data['current_theme']}
-        }
+        # ---------------- TOPBAR ----------------
+        s.topbar_height = WINDOW_HEIGHT * 0.05
+        s.topbar_font = pygame.font.SysFont(None, 30)
 
-    # ===============================
-    # EVENTS / INPUT
-    # ===============================
-    def handling_events(self, events):
-        # Pobieramy skrót do managera, żeby kod był czytelniejszy
-        sm = self.launcher.state_manager
-        
-        # Jeśli manager ma ustawiony focus na sidebar, ignorujemy klawisze w tym stanie
-        if sm.ui_focus != "content":
-            return
+        s.topbar_pos = (WINDOW_WIDTH * 0.1 + 10, 10)
+        s.topbar_button_size = (200, 80)
 
+    # =====================================================
+
+    def update(s, delta_time):
+        _, active_tab = s.tabs[s.topbar_index]
+        active_tab.update(delta_time)
+
+    # =====================================================
+
+    def draw(s, window):
+        window.fill((0, 0, 0))
+
+        if s.launcher.state_manager.ui_focus == 'topbar':
+            pygame.draw.rect(
+                window,
+                (0, 200, 255),
+                pygame.Rect(0, 0, WINDOW_WIDTH, 5)
+            )
+        else:
+            pygame.draw.rect(
+                window,
+                (0, 200, 255),
+                pygame.Rect(0, s.topbar_pos[1] + s.topbar_button_size[1] + 10, WINDOW_WIDTH-800, 5)
+            )
+
+        s.draw_topbar(window)
+
+        _, active_tab = s.tabs[s.topbar_index]
+        active_tab.draw(window)
+
+    # =====================================================
+
+    def handling_events(s, events):
         keys = pygame.key.get_just_pressed()
+        ctrl = s.launcher.controlls_data
 
-        # ---- TABS NAVIGATION ----
-        if keys[pygame.K_LEFT]:
-            self.tab_index = (self.tab_index - 1) % len(self.tabs)
-        elif keys[pygame.K_RIGHT]:
-            self.tab_index = (self.tab_index + 1) % len(self.tabs)
-        
-        # Szybkie przejście do sidebaru strzałką (opcjonalnie, skoro TAB już działa globalnie)
-        elif keys[pygame.K_ESCAPE]:
-            sm.ui_focus = "sidebar"
+        # ---------- TOPBAR ----------
+        if s.launcher.state_manager.ui_focus == 'topbar':
 
-    # ===============================
-    # UPDATE
-    # ===============================
-    def update(self, delta):
-        # Sidebar aktualizuje się sam w StateManagerze, tutaj tylko logika opcji
-        # Możemy tu np. aktualizować dane motywów na bieżąco
-        self.settings["Themes"]["Current Theme"] = self.launcher.theme_data['current_theme']
+            if keys[ctrl['right']]:
+                if s.topbar_index < len(s.tabs) - 1:
+                    s.topbar_index += 1
 
-    # ===============================
-    # DRAW
-    # ===============================
-    def draw(self, window):
-        theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
-        
-        # Pobieramy stały base_w dla stabilnego layoutu
-        sidebar_base_w = self.launcher.sidebar.base_w
-        
-        # Tło (rysowane pod sidebarem, bo StateManager rysuje sidebar na końcu)
-        window.fill(theme['colour_1'])
+            elif keys[ctrl['left']]:
+                if s.topbar_index > 0:
+                    s.topbar_index -= 1
+                else:
+                    s.launcher.state_manager.ui_focus = 'sidebar'
 
-        # ---- TABS ----
-        tab_y = 40
-        # Layout zaczyna się za "bazową" szerokością sidebaru
-        tab_start_x = sidebar_base_w + 50
-        
-        for i, tab in enumerate(self.tabs):
-            selected = i == self.tab_index
-            color = theme['colour_3'] if selected else (120, 120, 120)
-            
-            # Dodajemy podkreślenie dla wybranego tabu
-            text_surf = self.text_font.render(tab.upper(), True, color)
-            x_pos = tab_start_x + i * 180
-            window.blit(text_surf, (x_pos, tab_y))
-            
-            if selected:
-                pygame.draw.rect(window, theme['colour_3'], (x_pos, tab_y + 35, text_surf.get_width(), 4))
+            if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
+                s.launcher.state_manager.ui_focus = 'content'
 
-        # ---- CONTENT ----
-        content_y = 150
-        content_x = sidebar_base_w + 70
-        active_tab = self.tabs[self.tab_index]
-        tab_settings = self.settings.get(active_tab, {})
+        # ---------- CONTENT ----------
+        elif s.launcher.state_manager.ui_focus == 'content':
 
-        for i, (key, value) in enumerate(tab_settings.items()):
-            line = f"{key}: {value}"
-            text_surf = self.text_font.render(line, True, theme['colour_3'])
-            window.blit(text_surf, (content_x, content_y + i * 50))
-            
-    def on_enter(self):
-        # Resetujemy focus przy wejściu w opcje
-        self.launcher.state_manager.ui_focus = "content"
+            _, active_tab = s.tabs[s.topbar_index]
+            active_tab.handling_events(events, ctrl)
+
+            if keys[ctrl['action_b']]:
+                s.launcher.state_manager.ui_focus = 'topbar'
+
+    # =====================================================
+
+    def draw_topbar(s, window):
+        theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+        start_x, y = s.topbar_pos
+
+        for i, (label, _) in enumerate(s.tabs):
+            x = start_x + i * (s.topbar_button_size[0] + 10)
+            tab_rect = pygame.Rect((x, y), s.topbar_button_size)
+
+            is_selected = (i == s.topbar_index)
+
+            bg_color = theme['colour_2'] if is_selected else theme['colour_4']
+            text_color = theme['colour_1'] if is_selected else theme['colour_3']
+
+            pygame.draw.rect(window, bg_color, tab_rect)
+
+            text_surf = s.topbar_font.render(label, True, text_color)
+            text_rect = text_surf.get_rect(center=tab_rect.center)
+            window.blit(text_surf, text_rect)
+
+            if is_selected:
+                pygame.draw.rect(window, (0, 250, 0), tab_rect, 3)
+
+    # =====================================================
+
+    def on_enter(s):
+        s.launcher.state_manager.ui_focus = 'topbar'

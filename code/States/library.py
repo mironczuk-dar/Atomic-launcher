@@ -60,11 +60,6 @@ class Library(BaseState):
         if s.bottombar.visible:
             s.bottombar.handling_events()
             return
-        
-        if keys[controlls['action_b']]:
-            s.bottombar.open_bottombar()
-            return
-        
 
         if s.launcher.state_manager.ui_focus != 'content':
             return
@@ -74,7 +69,10 @@ class Library(BaseState):
             if s.searchbar.handle_events(events):
                 s.searchbar.active = False
             return
-
+        
+        if keys[controlls['action_b']]:
+            s.bottombar.open_bottombar()
+            return
 
         #CONTENT NAVIGATION
         if keys[s.launcher.controlls_data['left']]:

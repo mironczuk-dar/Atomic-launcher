@@ -1,10 +1,20 @@
 {
+  "pack_the_bag": {
+    "name": "Pack the bag",
+    "author": "Clear Code",
+    "repo": "https://github.com/mironczuk-dar/Pack-the-bag.git",
+    "branch": "main",
+    "version": "1.0.0",
+    "description": "Keep packing the bagssss",
+    "tags" : ["pixel-art", "rpg"],
+    "game_type": "Arcade"
+  },
   "zelda": {
     "name": "Zelda",
     "author": "Clear Code",
     "repo": "https://github.com/mironczuk-dar/Zelda.git",
     "branch": "main",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "You acctually play as Zelda.. Or a version of her.",
     "tags" : ["adventure", "pixel-art", "rpg"],
     "game_type": "Adventure"

@@ -9,6 +9,26 @@
     "tags" : ["pixel-art", "rpg"],
     "game_type": "Arcade"
   },
+  "flappuccino": {
+      "name": "Flappuccino",
+      "author": "Clear Code",
+      "repo": "https://github.com/mironczuk-dar/Flappuccino.git",
+      "branch": "main",
+      "version": "1.0.0",
+      "description": "Keep flapping your wings to get as much coffee as you can",
+      "tags" : ["pixel-art", "arcade"],
+      "game_type": "Arcade"
+    },
+  "flyre": {
+      "name": "Flyre",
+      "author": "Clear Code",
+      "repo": "https://github.com/mironczuk-dar/Flyre.git",
+      "branch": "main",
+      "version": "1.0.0",
+      "description": "A much much much cooler version of space invaders!",
+      "tags" : ["pixel-art", "arcade"],
+      "game_type": "Arcade"
+    },
   "zelda": {
     "name": "Zelda",
     "author": "Clear Code",

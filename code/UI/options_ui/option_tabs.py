@@ -4,6 +4,7 @@ import pygame
 #IMPORTING FILES
 from UI.options_ui.FPS_preview_ball import Ball
 from Tools.data_loading_tools import save_data
+from settings import CONTROLLS_DATA_PATH
 from settings import THEME_LIBRARY
 from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH
 
@@ -262,9 +263,109 @@ class VideoOptionsTab(GenericOptionsTab):
 
 
 class ControlsOptionsTab(GenericOptionsTab):
-
     def __init__(s, launcher):
         super().__init__(launcher)
+        
+        s.current_theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+        s.initial_pos = (WINDOW_WIDTH * 0.18, 600)
+        s.button_size = (280, 80)
+        
+        s.font = pygame.font.SysFont(None, 60, False)
+        s.value_font = pygame.font.SysFont(None, 45, False)
+
+        # Definiujemy grupy klawiszy dla kolumn
+        s.columns = {
+            'movement': ['up', 'down', 'left', 'right'],
+            'system': ['options'],
+            'actions': ['action_a', 'action_b', 'action_x', 'action_y']
+        }
+        s.column_names = ['movement', 'system', 'actions']
+        
+        s.active_col_idx = 0  # 0: lewa, 1: środek, 2: prawa
+        s.selected_index = 0  # Indeks wewnątrz danej kolumny
+        
+        s.waiting_for_key = False
+
+    def handling_events(s, events, ctrl):
+        if s.launcher.state_manager.ui_focus != 'content':
+            return
+
+        if s.waiting_for_key:
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key != pygame.K_ESCAPE:
+                        col_key = s.column_names[s.active_col_idx]
+                        action_name = s.columns[col_key][s.selected_index]
+                        s.update_control(action_name, event.key)
+                    s.waiting_for_key = False
+            return
+
+        keys = pygame.key.get_just_pressed()
+        current_col_key = s.column_names[s.active_col_idx]
+        num_items = len(s.columns[current_col_key])
+
+        # Nawigacja POZIOMA (między kolumnami)
+        if keys[ctrl['left']]:
+            s.active_col_idx = max(0, s.active_col_idx - 1)
+            s.selected_index = min(s.selected_index, len(s.columns[s.column_names[s.active_col_idx]]) - 1)
+        elif keys[ctrl['right']]:
+            s.active_col_idx = min(len(s.column_names) - 1, s.active_col_idx + 1)
+            s.selected_index = min(s.selected_index, len(s.columns[s.column_names[s.active_col_idx]]) - 1)
+
+        # Nawigacja PIONOWA
+        if keys[ctrl['up']]:
+            s.selected_index = max(0, s.selected_index - 1)
+        elif keys[ctrl['down']]:
+            s.selected_index = min(num_items - 1, s.selected_index + 1)
+
+        # Aktywacja zmiany
+        if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
+            s.waiting_for_key = True
+
+    def draw(s, window):
+        has_focus = (s.launcher.state_manager.ui_focus == 'content')
+        
+        # Rysowanie każdej kolumny
+        for col_idx, col_name in enumerate(s.column_names):
+            actions = s.columns[col_name]
+            
+            for row_idx, action_name in enumerate(actions):
+                is_selected = (col_idx == s.active_col_idx and row_idx == s.selected_index)
+                is_waiting = (is_selected and s.waiting_for_key)
+                
+                # Kolory
+                if is_waiting:
+                    bg_colour = (200, 50, 50)
+                    text_colour = s.current_theme['colour_3']
+                elif is_selected and has_focus:
+                    bg_colour = s.current_theme['colour_2']
+                    text_colour = s.current_theme['colour_3']
+                else:
+                    bg_colour = s.current_theme['colour_4']
+                    text_colour = s.current_theme['colour_2']
+
+                # Pozycjonowanie (3 kolumny)
+                x = s.initial_pos[0] + col_idx * (s.button_size[0] + 300)
+                y = s.initial_pos[1] + row_idx * (s.button_size[1] + 15)
+
+                # Przycisk
+                rect = pygame.Rect(x, y, s.button_size[0], s.button_size[1])
+                pygame.draw.rect(window, bg_colour, rect)
+                
+                # Tekst: Akcja i Klawisz
+                key_code = s.launcher.controlls_data[action_name]
+                key_name = pygame.key.name(key_code).upper()
+                
+                label = action_name.replace('_', ' ').title()
+                display_text = f"{label}: {key_name}" if not is_waiting else "PRESS..."
+                
+                text_surf = s.value_font.render(display_text, True, text_colour)
+                text_rect = text_surf.get_rect(center=rect.center)
+                window.blit(text_surf, text_rect)
+
+    def update_control(s, action_name, new_key):
+        s.launcher.controlls_data[action_name] = new_key
+        save_data(s.launcher.controlls_data, CONTROLLS_DATA_PATH)
 
 class PerformanceOptionsTab(GenericOptionsTab):
 

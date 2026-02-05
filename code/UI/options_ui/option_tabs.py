@@ -6,8 +6,14 @@ from UI.options_ui.FPS_preview_ball import Ball
 from Tools.data_loading_tools import save_data
 from Tools.asset_importing_tool import import_image
 from settings import CONTROLLS_DATA_PATH
+<<<<<<< HEAD
 from settings import THEME_LIBRARY
 from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH, BASE_DIR
+=======
+from settings import THEME_LIBRARY, THEMES_DATA_PATH
+from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH
+from settings import PERFORMANCE_SETTINGS_DATA_PATH, THEME_LIBRARY, WINDOW_WIDTH
+>>>>>>> cac572eec5c2defa7cf99c73f3ca28baa8de0078
 
 class GenericOptionsTab:
 
@@ -377,8 +383,210 @@ class PerformanceOptionsTab(GenericOptionsTab):
 
     def __init__(s, launcher):
         super().__init__(launcher)
+        s.update_visuals()
+        
+        s.initial_pos = (WINDOW_WIDTH * 0.15, 250)
+        s.col_width = 350
+        s.fps_button_height = 80
+        s.shutdown_button_size = (400, 200)
+        s.spacing = 15
+        
+        s.font = pygame.font.SysFont(None, 45, False)
+        s.header_font = pygame.font.SysFont(None, 55, True)
+
+        # Opcje FPS do wyboru
+        s.fps_levels = [60, 40, 30, 20, 15, 10, 5]
+        
+        # Nawigacja
+        s.active_col = 'fps'  # 'fps' lub 'shutdown'
+        s.fps_index = 0
+
+    def update_visuals(s):
+        s.current_theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+
+    def handling_events(s, events, ctrl):
+        if s.launcher.state_manager.ui_focus != 'content':
+            return
+
+        keys = pygame.key.get_just_pressed()
+
+        # Zmiana kolumny
+        if keys[ctrl['left']] or keys[ctrl['right']]:
+            s.active_col = 'shutdown' if s.active_col == 'fps' else 'fps'
+
+        # Nawigacja pionowa (tylko dla kolumny FPS)
+        if s.active_col == 'fps':
+            if keys[ctrl['up']]:
+                s.fps_index = (s.fps_index - 1) % len(s.fps_levels)
+            elif keys[ctrl['down']]:
+                s.fps_index = (s.fps_index + 1) % len(s.fps_levels)
+
+        # Akcja / Potwierdzenie
+        if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
+            if s.active_col == 'fps':
+                s.launcher.performance_settings_data['decrease_launcher_fps_when_game_active'] = s.fps_levels[s.fps_index]
+            else:
+                current_val = s.launcher.performance_settings_data['turn_off_launcher_when_game_active']
+                s.launcher.performance_settings_data['turn_off_launcher_when_game_active'] = not current_val
+            
+            save_data(s.launcher.performance_settings_data, PERFORMANCE_SETTINGS_DATA_PATH)
+
+    def draw(s, window):
+        has_focus = (s.launcher.state_manager.ui_focus == 'content')
+        
+        s.draw_fps_column(window, has_focus)
+        s.draw_shutdown_column(window, has_focus)
+
+    def draw_fps_column(s, window, has_focus):
+        # Nagłówek
+        header = s.header_font.render("Background FPS", True, s.current_theme['colour_2'])
+        window.blit(header, (s.initial_pos[0], s.initial_pos[1] - 60))
+
+        current_saved_fps = s.launcher.performance_settings_data['decrease_launcher_fps_when_game_active']
+
+        for i, fps in enumerate(s.fps_levels):
+            is_selected = (s.active_col == 'fps' and i == s.fps_index and has_focus)
+            is_active = (fps == current_saved_fps)
+
+            bg_col = s.current_theme['colour_2'] if is_selected else s.current_theme['colour_4']
+            text_col = s.current_theme['colour_3'] if is_selected else s.current_theme['colour_2']
+
+            rect = pygame.Rect(
+                s.initial_pos[0], 
+                s.initial_pos[1] + i * (s.fps_button_height + s.spacing),
+                s.col_width, 
+                s.fps_button_height
+            )
+
+            pygame.draw.rect(window, bg_col, rect, border_radius=5)
+            
+            # Ramka dla aktualnie wybranej wartości w danych
+            if is_active:
+                pygame.draw.rect(window, (0, 255, 0), rect, 3, border_radius=5)
+
+            text_surf = s.font.render(f"{fps} FPS", True, text_col)
+            text_rect = text_surf.get_rect(center=rect.center)
+            window.blit(text_surf, text_rect)
+
+    def draw_shutdown_column(s, window, has_focus):
+        # Pozycja prawej kolumny
+        x_pos = s.initial_pos[0] + s.col_width + 100
+        
+        # Nagłówek
+        header = s.header_font.render("Launcher Behavior", True, s.current_theme['colour_2'])
+        window.blit(header, (x_pos, s.initial_pos[1] - 60))
+
+        is_selected = (s.active_col == 'shutdown' and has_focus)
+        is_on = s.launcher.performance_settings_data['turn_off_launcher_when_game_active']
+
+        bg_col = s.current_theme['colour_2'] if is_selected else s.current_theme['colour_4']
+        text_col = s.current_theme['colour_3'] if is_selected else s.current_theme['colour_2']
+
+        rect = pygame.Rect(x_pos, s.initial_pos[1], s.shutdown_button_size[0], s.shutdown_button_size[1])
+        pygame.draw.rect(window, bg_col, rect, border_radius=10)
+
+        # Tekst przycisku
+        main_text = "Shutdown Launcher"
+        status_text = "STATUS: ON" if is_on else "STATUS: OFF"
+        status_col = (100, 255, 100) if is_on else (255, 100, 100)
+
+        t1 = s.font.render(main_text, True, text_col)
+        t2 = s.font.render(status_text, True, status_col if not is_selected else text_col)
+
+        window.blit(t1, (rect.centerx - t1.get_width()//2, rect.y + 40))
+        window.blit(t2, (rect.centerx - t2.get_width()//2, rect.y + 110))
+
+        # Podpowiedź na dole
+        desc = "Close app when game starts"
+        desc_surf = s.font.render(desc, True, s.current_theme['colour_4'])
+        window.blit(desc_surf, (x_pos, rect.bottom + 20))
 
 class ThemesOptionsTab(GenericOptionsTab):
 
     def __init__(s, launcher):
         super().__init__(launcher)
+        
+        # UI Layout
+        s.initial_pos = (WINDOW_WIDTH * 0.2, 250)
+        s.button_size = (500, 100)
+        s.spacing = 20
+        
+        s.font = pygame.font.SysFont(None, 70, False)
+        
+        # Logic
+        s.theme_names = list(THEME_LIBRARY.keys())
+        s.selected_index = 0
+        
+        # Sync index with current theme
+        current = s.launcher.theme_data['current_theme']
+        if current in s.theme_names:
+            s.selected_index = s.theme_names.index(current)
+
+    def handling_events(s, events, ctrl):
+        if s.launcher.state_manager.ui_focus != 'content':
+            return
+
+        keys = pygame.key.get_just_pressed()
+
+        if keys[ctrl['up']]:
+            s.selected_index = (s.selected_index - 1) % len(s.theme_names)
+        elif keys[ctrl['down']]:
+            s.selected_index = (s.selected_index + 1) % len(s.theme_names)
+
+        # Zmiana motywu
+        if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
+            new_theme = s.theme_names[s.selected_index]
+            s.apply_theme(new_theme)
+
+    def apply_theme(s, theme_name):
+        s.launcher.theme_data['current_theme'] = theme_name
+        save_data(s.launcher.theme_data, THEMES_DATA_PATH)
+        
+        # WYWOŁANIE REODŚWIEŻENIA:
+        # Zakładając, że s.launcher.state_manager.current_state to instancja Options
+        current_state = s.launcher.state_manager.active_state
+        if hasattr(current_state, 'refresh_tabs'):
+            current_state.refresh_tabs()
+
+    def draw(s, window):
+        has_focus = (s.launcher.state_manager.ui_focus == 'content')
+        
+        # We fetch the theme dynamically so the preview updates immediately 
+        # if the user changes it
+        current_visuals = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+
+        for i, name in enumerate(s.theme_names):
+            is_hovered = (i == s.selected_index and has_focus)
+            is_active = (name == s.launcher.theme_data['current_theme'])
+            
+            # Button Colors
+            bg_col = current_visuals['colour_2'] if is_hovered else current_visuals['colour_4']
+            text_col = current_visuals['colour_3'] if is_hovered else current_visuals['colour_2']
+            
+            x = s.initial_pos[0]
+            y = s.initial_pos[1] + i * (s.button_size[1] + s.spacing)
+            
+            rect = pygame.Rect(x, y, s.button_size[0], s.button_size[1])
+            
+            # Draw Button
+            pygame.draw.rect(window, bg_col, rect, border_radius=10)
+            
+            # Active indicator (Border)
+            if is_active:
+                pygame.draw.rect(window, (255, 255, 255), rect, 4, border_radius=10)
+
+            # Theme Name
+            text_surf = s.font.render(name, True, text_col)
+            text_rect = text_surf.get_rect(center=rect.center)
+            window.blit(text_surf, text_rect)
+            
+            # Small Color Preview Swatches
+            s.draw_color_previews(window, name, x + s.button_size[0] + 20, y)
+
+    def draw_color_previews(s, window, theme_name, x, y):
+        colors = THEME_LIBRARY[theme_name]
+        swatch_size = 80
+        for j, col_key in enumerate(['colour_1', 'colour_2', 'colour_3', 'colour_4']):
+            swatch_rect = pygame.Rect(x + (j * (swatch_size + 5)), y + 15, swatch_size, swatch_size)
+            pygame.draw.rect(window, colors[col_key], swatch_rect)
+            pygame.draw.rect(window, (200, 200, 200), swatch_rect, 2) # Outline

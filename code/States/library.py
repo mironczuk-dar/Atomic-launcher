@@ -188,29 +188,47 @@ class Library(BaseState):
         self.get_game_library()
 
     def launch_game(self):
-        """Uruchamia wybraną grę w nowym procesie."""
+        """Uruchamia wybraną grę w nowym procesie z uwzględnieniem ustawień wydajności."""
         if not self.filtered_games:
             return
 
+        # 1. PRZYGOTOWANIE ŚCIEŻEK
         folder_name = self.filtered_games[self.selected_index]
         game_path = os.path.join(GAMES_DIR, folder_name, 'code')
         
         game_data = self.manifest.get(folder_name, {})
-        main_file = game_data.get("mian.py", "main.py")
-        
+        main_file = game_data.get("main.py", "main.py") 
         full_path = os.path.join(game_path, main_file)
 
-        if os.path.exists(full_path):
-            try:
-                print(f"Launching {folder_name} via {full_path}...")
-
-                subprocess.Popen(
-                    [sys.executable, full_path],
-                    cwd=game_path,
-                    creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
-                )
-                
-            except Exception as e:
-                print(f"Error launching game: {e}")
-        else:
+        if not os.path.exists(full_path):
             print(f"Error: Could not find startup file at {full_path}")
+            return
+
+        # 2. URUCHOMIENIE GRY (Blok try łapie tylko błędy startu procesu)
+        try:
+            print(f"Launching {folder_name}...")
+            subprocess.Popen(
+                [sys.executable, full_path],
+                cwd=game_path,
+                creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
+            )
+        except Exception as e:
+            print(f"Failed to start the game process: {e}")
+            return # Wychodzimy, jeśli gra w ogóle nie wystartowała
+
+        # 3. OBSŁUGA USTAWIEŃ WYDAJNOŚCI (Poza blokiem try-except gry)
+        perf_data = self.launcher.performance_settings_data
+        
+        # Scenariusz A: Całkowite zamknięcie launchera
+        if perf_data.get('turn_off_launcher_when_game_active'):
+            print("Closing launcher as requested in performance settings.")
+            pygame.quit()
+            sys.exit() # Teraz zadziała poprawnie, bo nie jest wewnątrz try-except przechwytującego Exception
+
+        # Scenariusz B: Launcher zostaje w tle, ale oszczędza zasoby
+        else:
+            target_fps = perf_data.get('decrease_launcher_fps_when_game_active', 30)
+            print(f"Game started. Lowering launcher background FPS to: {target_fps}")
+            
+            # Ustawienie FPS dla głównej pętli launchera
+            self.fps = target_fps

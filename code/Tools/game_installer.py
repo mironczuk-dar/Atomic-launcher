@@ -19,6 +19,7 @@ class GameInstaller:
         self.games_dir.mkdir(parents=True, exist_ok=True)
         self.is_downloading = False
         self.current_game_id = None
+        self.download_progress = 0
 
     # ==================================================
     # BASIC STATE
@@ -57,64 +58,49 @@ class GameInstaller:
     # ==================================================
     # INSTALL
     # ==================================================
-    def install(
-        self,
-        game_id: str,
-        repo_url: str,
-        manifest_version: str,
-        branch: str = "main"
-    ) -> bool:
+    def install(self, game_id, repo_url, manifest_version, branch="main") -> bool:
         target = self.games_dir / game_id
-
-        if self.is_installed(game_id):
-            print(f"[Installer] {game_id} już jest zainstalowany.")
-            return True
-
-        # Ustawiamy flagę informującą, że trwa proces pobierania
         self.is_downloading = True
         self.current_game_id = game_id
+        self.download_progress = 0
 
         try:
-            print(f"[Installer] Instalowanie {game_id}...")
-            
-            # subprocess.run w osobnym wątku nie zablokuje UI, 
-            # ale poczeka tutaj na zakończenie operacji Gita.
-            subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    "--depth",
-                    "1",
-                    "-b",
-                    branch,
-                    repo_url,
-                    str(target)
-                ],
-                check=True,
-                capture_output=True, # Opcjonalnie: przechwytuje logi, by nie zaśmiecać konsoli
-                text=True
+            # Używamy --progress, aby Git wysyłał dane o procentach
+            process = subprocess.Popen(
+                ["git", "clone", "--progress", "--depth", "1", "-b", branch, repo_url, str(target)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, # Przekierowujemy błędy do stdout, by czytać wszystko razem
+                text=True,
+                bufsize=1,
+                universal_newlines=True
             )
 
-            # Synchronizacja wersji po sukcesie
-            self.write_local_version(game_id, manifest_version)
+            # Czytamy strumień danych linijka po linijce
+            for line in process.stdout:
+                # Szukamy wzorca procentów, np. "Receiving objects:  55%"
+                if "%" in line:
+                    parts = line.split("%")[0].split()
+                    if parts:
+                        try:
+                            # Wyciągamy ostatnią liczbę przed znakiem %
+                            val = int(parts[-1])
+                            self.download_progress = val
+                        except ValueError:
+                            pass
 
-            print(f"[Installer] {game_id} zainstalowany pomyślnie.")
-            return True
+            process.wait() # Czekamy na zakończenie procesu
 
-        except subprocess.CalledProcessError as e:
-            print(f"[Installer] BŁĄD instalacji {game_id}: {e.stderr}")
-            if target.exists():
-                shutil.rmtree(target)
-            return False
-        
-        except Exception as e:
-            print(f"[Installer] Nieoczekiwany błąd: {e}")
-            return False
+            if process.returncode == 0:
+                self.write_local_version(game_id, manifest_version)
+                return True
+            else:
+                if target.exists(): shutil.rmtree(target)
+                return False
 
         finally:
-            # ZAWSZE przywracamy flagę do False, niezależnie od wyniku
             self.is_downloading = False
             self.current_game_id = None
+            self.download_progress = 0
 
     # ==================================================
     # UPDATE

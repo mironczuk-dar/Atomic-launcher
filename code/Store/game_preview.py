@@ -2,6 +2,7 @@ import pygame
 from States.generic_state import BaseState
 from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
 from UI.store_ui.store_entry import GameStatus
+from UI.store_ui.progress_bar import Bar  # Upewnij się, że ścieżka jest poprawna
 from os import listdir
 import threading
 from os.path import join, isdir
@@ -13,6 +14,10 @@ class GamePreview(BaseState):
         s.data = {}
         s.screenshots = []
         s.status = GameStatus.NOT_INSTALLED
+        
+        # Inicjalizacja paska (pozycja x, y, szerokość, wysokość)
+        # Ustawiamy go w prawym dolnym rogu, tam gdzie komunikat "Downloading"
+        s.progress_bar = Bar(0, 0, 300, 20) 
 
     def setup(s, game_id, game_data):
         """Metoda przygotowująca dane przed wyświetleniem podstrony."""
@@ -47,32 +52,24 @@ class GamePreview(BaseState):
                     img_w, img_h = img.get_size()
                     img_ratio = img_w / img_h
 
-                    # Tworzymy czysty "kontener" 16:9
                     surface = pygame.Surface((target_w, target_h), pygame.SRCALPHA)
                     
                     if abs(img_ratio - target_ratio) < 0.01:
-                        # Obraz jest już w 16:9 lub bardzo blisko - skalujemy normalnie
                         final_img = pygame.transform.smoothscale(img, (target_w, target_h))
                         surface.blit(final_img, (0, 0))
                     else:
-                        # Skalowanie z zachowaniem proporcji (letterboxing)
                         if img_ratio > target_ratio:
-                            # Obraz jest szerszy niż 16:9
                             new_w = target_w
                             new_h = int(target_w / img_ratio)
                         else:
-                            # Obraz jest węższy (np. pionowy)
                             new_h = target_h
                             new_w = int(target_h * img_ratio)
                         
                         scaled_img = pygame.transform.smoothscale(img, (new_w, new_h))
-                        
-                        # Centrowanie obrazu na powierzchni 640x360
                         rect = scaled_img.get_rect(center=(target_w // 2, target_h // 2))
                         surface.blit(scaled_img, rect)
 
                     s.screenshots.append(surface)
-
                 except Exception as e:
                     print(f"Błąd ładowania obrazu {file}: {e}")
         
@@ -85,40 +82,31 @@ class GamePreview(BaseState):
         keys = pygame.key.get_just_pressed()
         controlls = s.launcher.controlls_data
         
-        # Powrót do sklepu (akcja B lub ESC)
         if keys[controlls['action_b']] or keys[pygame.K_ESCAPE]:
             s.launcher.state_manager.set_state('Store')
             return
 
-        # Instalacja / Aktualizacja (akcja A lub ENTER)
         if keys[pygame.K_RETURN] or keys[controlls['action_a']]:
             if s.status != GameStatus.INSTALLED:
                 s.install_logic()
 
     def install_logic(s):
-        """Uruchamia proces instalacji w tle, aby nie blokować UI."""
-        # Jeśli już pobieramy, nie rób nic (zabezpieczenie przed spamowaniem ENTER)
         if s.launcher.installer.is_downloading:
             return
 
         manifest_version = s.data.get("version")
         
-        # Funkcja, którą wykona wątek
         def run_in_background():
             if s.status == GameStatus.NOT_INSTALLED:
-                success = s.launcher.installer.install(s.game_id, s.data["repo"], manifest_version)
+                s.launcher.installer.install(s.game_id, s.data["repo"], manifest_version)
             elif s.status == GameStatus.UPDATE_AVAILABLE:
-                success = s.launcher.installer.update(s.game_id, manifest_version)
-            
-            # Po zakończeniu pobierania odświeżamy status (wywoływane wewnątrz wątku)
+                s.launcher.installer.update(s.game_id, manifest_version)
             s.check_status()
 
-        # Tworzymy i odpalamy wątek
         download_thread = threading.Thread(target=run_in_background, daemon=True)
         download_thread.start()
 
     def draw_wrapped_text(s, window, text, font, color, rect):
-        """Pomocnicza funkcja do zawijania tekstu opisu gry."""
         words = text.split(' ')
         space_w, _ = font.size(' ')
         max_width, max_height = rect.size
@@ -139,14 +127,13 @@ class GamePreview(BaseState):
         window.blit(font.render(line, True, color), (rect.left, y))
 
     def get_status_surface(s):
-        """Zwraca wyrenderowany tekst statusu z odpowiednim kolorem."""
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         font_mid = pygame.font.SysFont(None, 45)
 
         status_map = {
-            GameStatus.NOT_INSTALLED: ("DOWNLOAD FOR FREE", (220, 60, 60)), # Czerwony
-            GameStatus.UPDATE_AVAILABLE: ("UPDATE AVALIBLE", (220, 160, 40)), # Pomarańcz
-            GameStatus.INSTALLED: ("INSTALLED", (60, 220, 60)) # Zielony
+            GameStatus.NOT_INSTALLED: ("DOWNLOAD FOR FREE", (220, 60, 60)),
+            GameStatus.UPDATE_AVAILABLE: ("UPDATE AVAILABLE", (220, 160, 40)),
+            GameStatus.INSTALLED: ("INSTALLED", (60, 220, 60))
         }
         
         text, color = status_map.get(s.status, ("STATUS NIEZNANY", theme['colour_4']))
@@ -157,26 +144,42 @@ class GamePreview(BaseState):
         window.fill(theme['colour_1'])
         
         x_offset = s.launcher.sidebar.base_w + 50
-        is_busy = s.launcher.installer.is_downloading # Skrót dla czytelności
+        is_busy = s.launcher.installer.is_downloading
         
-        # --- 1. Nagłówek ---
         font_big = pygame.font.SysFont(None, 110)
         font_mid = pygame.font.SysFont(None, 45)
         font_small = pygame.font.SysFont(None, 28)
         
+        # --- 1. Nagłówek ---
         title_surf = font_big.render(s.data.get('name', 'Gra'), True, theme['colour_2'])
         window.blit(title_surf, (x_offset, 40))
         
         author_surf = font_mid.render(f"Autor: {s.data.get('author')}", True, theme['colour_3'])
         window.blit(author_surf, (x_offset, 125))
 
-        # --- 2. Status i Informacja o pobieraniu ---
+        # --- 2. Status i Bar Pobierania ---
         if is_busy:
-            # Wyświetlamy tylko komunikat o pobieraniu w miejscu statusu
-            loading_surf = font_mid.render("DOWNLOADING...", True, (255, 255, 0))
-            window.blit(loading_surf, (WINDOW_WIDTH - loading_surf.get_width() - 50, WINDOW_HEIGHT - 130))
+            # Pobieramy aktualny procent z instalatora
+            progress_val = s.launcher.installer.download_progress
+            
+            # Napis DOWNLOADING z dynamicznym procentem
+            loading_text = f"DOWNLOADING... {progress_val}%"
+            loading_surf = font_mid.render(loading_text, True, (255, 255, 0))
+            
+            text_x = WINDOW_WIDTH - loading_surf.get_width() - 50
+            text_y = WINDOW_HEIGHT - 130
+            window.blit(loading_surf, (text_x, text_y))
+            
+            # Konfiguracja i rysowanie PASKA
+            # Szerokość paska ustawiamy na stałą (np. 300px), żeby nie skakała przy zmianie cyfr
+            bar_width = 300
+            s.progress_bar.rect.width = bar_width
+            s.progress_bar.rect.topright = (WINDOW_WIDTH - 50, text_y + 45) # Wyrównanie do prawej
+            s.progress_bar.bar_color = (255, 255, 0) 
+            
+            s.progress_bar.set_progress(progress_val) 
+            s.progress_bar.draw(window)
         else:
-            # Standardowy status (Installed / Download / Update)
             status_surf = s.get_status_surface()
             window.blit(status_surf, (WINDOW_WIDTH - status_surf.get_width() - 50, WINDOW_HEIGHT - 130))
 
@@ -201,8 +204,7 @@ class GamePreview(BaseState):
         
         # --- 6. Stopka ---
         if is_busy:
-            # Blokujemy podpowiedź ENTER, zostawiamy tylko powrót
-            action_hint = "Please wait... | [B] Back"
+            action_hint = "Downloading in progress... | [B] Back"
         else:
             if s.status == GameStatus.INSTALLED:
                 action_text = "Gra gotowa do uruchomienia"

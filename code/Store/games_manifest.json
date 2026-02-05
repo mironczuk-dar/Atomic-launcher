@@ -1,31 +1,31 @@
 {
   "pack_the_bag": {
     "name": "Pack the bag",
-    "author": "Clear Code",
+    "author": "plasmastarfish",
     "repo": "https://github.com/mironczuk-dar/Pack-the-bag.git",
     "branch": "main",
     "version": "1.0.0",
-    "description": "Keep packing the bagssss",
-    "tags" : ["pixel-art", "rpg"],
-    "game_type": "Arcade"
+    "description": "You're leaving for a trip! Pack all your items into a suitcase. This game is quite short and not particularly difficult, and you can probably complete it in 15 minutes or so.",
+    "tags" : ["pixel-art", "cozzy"],
+    "game_type": "Point and click"
   },
   "flappuccino": {
       "name": "Flappuccino",
-      "author": "Clear Code",
+      "author": "PolyMars",
       "repo": "https://github.com/mironczuk-dar/Flappuccino.git",
       "branch": "main",
       "version": "1.0.0",
-      "description": "Keep flapping your wings to get as much coffee as you can",
+      "description": "You're a coffee-craving bird(?) in Flappuccino, a game made in 48 hours for the Pygame Community New Years Jam!",
       "tags" : ["pixel-art", "arcade"],
       "game_type": "Arcade"
     },
   "flyre": {
       "name": "Flyre",
-      "author": "Clear Code",
+      "author": "CozyFractal",
       "repo": "https://github.com/mironczuk-dar/Flyre.git",
       "branch": "main",
       "version": "1.0.0",
-      "description": "A much much much cooler version of space invaders!",
+      "description": "Flyre is a 2d pixel art shoot-em-up, where you improve through a skill tree! It was made in under one week for the Pygame Community Easter jam, but the development will continue, however at a slower pace.",
       "tags" : ["pixel-art", "arcade"],
       "game_type": "Arcade"
     },
@@ -51,7 +51,7 @@
   },
   "infinite_runner": {
     "name": "Infinite runner",
-    "author": "Duuudeee",
+    "author": "A Corgi with a mouth",
     "repo": "https://github.com/mironczuk-dar/Infinite-runner.git",
     "branch": "main",
     "version": "1.0.1",
@@ -61,7 +61,7 @@
   },
   "space_invaders": {
     "name": "Space Invaders",
-    "author": "Some Dude",
+    "author": "A Corgi with a mouth",
     "repo": "https://github.com/mironczuk-dar/Spcae-invaders.git",
     "branch": "main",
     "version": "1.0.0",
@@ -71,7 +71,7 @@
   },
   "snake": {
     "name": "Snake",
-    "author": "Some Dude2",
+    "author": "A Corgi with a mouth",
     "repo": "https://github.com/mironczuk-dar/Snake.git",
     "branch": "main",
     "version": "1.0.0",

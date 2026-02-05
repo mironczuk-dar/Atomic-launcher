@@ -70,7 +70,7 @@ class Library(BaseState):
                 s.searchbar.active = False
             return
         
-        if keys[controlls['action_b']]:
+        if keys[controlls['action_b']] and len(s.game_library) != 0:
             s.bottombar.open_bottombar()
             return
 

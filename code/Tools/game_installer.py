@@ -17,6 +17,8 @@ class GameInstaller:
     def __init__(self, games_dir: str):
         self.games_dir = Path(games_dir)
         self.games_dir.mkdir(parents=True, exist_ok=True)
+        self.is_downloading = False
+        self.current_game_id = None
 
     # ==================================================
     # BASIC STATE
@@ -68,8 +70,15 @@ class GameInstaller:
             print(f"[Installer] {game_id} już jest zainstalowany.")
             return True
 
+        # Ustawiamy flagę informującą, że trwa proces pobierania
+        self.is_downloading = True
+        self.current_game_id = game_id
+
         try:
             print(f"[Installer] Instalowanie {game_id}...")
+            
+            # subprocess.run w osobnym wątku nie zablokuje UI, 
+            # ale poczeka tutaj na zakończenie operacji Gita.
             subprocess.run(
                 [
                     "git",
@@ -81,20 +90,31 @@ class GameInstaller:
                     repo_url,
                     str(target)
                 ],
-                check=True
+                check=True,
+                capture_output=True, # Opcjonalnie: przechwytuje logi, by nie zaśmiecać konsoli
+                text=True
             )
 
-            # 🔥 KLUCZOWE: synchronizacja wersji z manifestu
+            # Synchronizacja wersji po sukcesie
             self.write_local_version(game_id, manifest_version)
 
             print(f"[Installer] {game_id} zainstalowany pomyślnie.")
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"[Installer] BŁĄD instalacji {game_id}: {e}")
+            print(f"[Installer] BŁĄD instalacji {game_id}: {e.stderr}")
             if target.exists():
                 shutil.rmtree(target)
             return False
+        
+        except Exception as e:
+            print(f"[Installer] Nieoczekiwany błąd: {e}")
+            return False
+
+        finally:
+            # ZAWSZE przywracamy flagę do False, niezależnie od wyniku
+            self.is_downloading = False
+            self.current_game_id = None
 
     # ==================================================
     # UPDATE
@@ -110,35 +130,60 @@ class GameInstaller:
         if not self.is_installed(game_id):
             print(f"[Installer] {game_id} nie jest zainstalowany.")
             return False
+        
+        # Ustawiamy stan pobierania przed rozpoczęciem procesów
+        self.is_downloading = True
+        self.current_game_id = game_id
 
         try:
             print(f"[Installer] Aktualizowanie {game_id}...")
 
+            # Wykonujemy operacje Gita. 
+            # capture_output=True sprawia, że logi są przechwytywane pod maską.
             subprocess.run(
                 ["git", "fetch", "origin", branch],
                 cwd=target,
-                check=True
+                check=True,
+                capture_output=True,
+                text=True
             )
             subprocess.run(
                 ["git", "reset", "--hard", f"origin/{branch}"],
                 cwd=target,
-                check=True
+                check=True,
+                capture_output=True,
+                text=True
             )
             subprocess.run(
                 ["git", "clean", "-fd"],
                 cwd=target,
-                check=True
+                check=True,
+                capture_output=True,
+                text=True
             )
 
-            # 🔥 KLUCZOWE: zapis wersji z manifestu
+            # Synchronizacja wersji z manifestem
             self.write_local_version(game_id, manifest_version)
 
-            print(f"[Installer] {game_id} zaktualizowany.")
+            print(f"[Installer] {game_id} zaktualizowany pomyślnie.")
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"[Installer] BŁĄD aktualizacji {game_id}: {e}")
+            # Wypisujemy błąd z e.stderr, jeśli Git coś zgłosił
+            error_msg = e.stderr if e.stderr else str(e)
+            print(f"[Installer] BŁĄD aktualizacji {game_id}: {error_msg}")
             return False
+        
+        except Exception as e:
+            print(f"[Installer] Nieoczekiwany błąd podczas aktualizacji: {e}")
+            return False
+
+        finally:
+            # TO JEST KLUCZOWE: 
+            # Niezależnie od tego czy się udało, czy wywaliło błąd, 
+            # musimy "odblokować" launcher dla użytkownika.
+            self.is_downloading = False
+            self.current_game_id = None
 
     # ==================================================
     # REMOVE

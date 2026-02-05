@@ -3,6 +3,7 @@ from States.generic_state import BaseState
 from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
 from UI.store_ui.store_entry import GameStatus
 from os import listdir
+import threading
 from os.path import join, isdir
 
 class GamePreview(BaseState):
@@ -95,16 +96,26 @@ class GamePreview(BaseState):
                 s.install_logic()
 
     def install_logic(s):
-        """Uruchamia proces instalacji i natychmiast odświeża status."""
+        """Uruchamia proces instalacji w tle, aby nie blokować UI."""
+        # Jeśli już pobieramy, nie rób nic (zabezpieczenie przed spamowaniem ENTER)
+        if s.launcher.installer.is_downloading:
+            return
+
         manifest_version = s.data.get("version")
         
-        if s.status == GameStatus.NOT_INSTALLED:
-            s.launcher.installer.install(s.game_id, s.data["repo"], manifest_version)
-        elif s.status == GameStatus.UPDATE_AVAILABLE:
-            s.launcher.installer.update(s.game_id, manifest_version)
+        # Funkcja, którą wykona wątek
+        def run_in_background():
+            if s.status == GameStatus.NOT_INSTALLED:
+                success = s.launcher.installer.install(s.game_id, s.data["repo"], manifest_version)
+            elif s.status == GameStatus.UPDATE_AVAILABLE:
+                success = s.launcher.installer.update(s.game_id, manifest_version)
+            
+            # Po zakończeniu pobierania odświeżamy status (wywoływane wewnątrz wątku)
+            s.check_status()
 
-        # Odświeżenie statusu po zakończeniu operacji
-        s.check_status()
+        # Tworzymy i odpalamy wątek
+        download_thread = threading.Thread(target=run_in_background, daemon=True)
+        download_thread.start()
 
     def draw_wrapped_text(s, window, text, font, color, rect):
         """Pomocnicza funkcja do zawijania tekstu opisu gry."""
@@ -146,8 +157,9 @@ class GamePreview(BaseState):
         window.fill(theme['colour_1'])
         
         x_offset = s.launcher.sidebar.base_w + 50
+        is_busy = s.launcher.installer.is_downloading # Skrót dla czytelności
         
-        # 1. Nagłówek (Tytuł i Autor)
+        # --- 1. Nagłówek ---
         font_big = pygame.font.SysFont(None, 110)
         font_mid = pygame.font.SysFont(None, 45)
         font_small = pygame.font.SysFont(None, 28)
@@ -158,15 +170,21 @@ class GamePreview(BaseState):
         author_surf = font_mid.render(f"Autor: {s.data.get('author')}", True, theme['colour_3'])
         window.blit(author_surf, (x_offset, 125))
 
-        # 2. Status (Prawy dolny róg, nad stopką)
-        status_surf = s.get_status_surface()
-        window.blit(status_surf, (WINDOW_WIDTH - status_surf.get_width() - 50, WINDOW_HEIGHT - 130))
+        # --- 2. Status i Informacja o pobieraniu ---
+        if is_busy:
+            # Wyświetlamy tylko komunikat o pobieraniu w miejscu statusu
+            loading_surf = font_mid.render("DOWNLOADING...", True, (255, 255, 0))
+            window.blit(loading_surf, (WINDOW_WIDTH - loading_surf.get_width() - 50, WINDOW_HEIGHT - 130))
+        else:
+            # Standardowy status (Installed / Download / Update)
+            status_surf = s.get_status_surface()
+            window.blit(status_surf, (WINDOW_WIDTH - status_surf.get_width() - 50, WINDOW_HEIGHT - 130))
 
-        # 3. Screenshoty (Maksymalnie 2 obok siebie)
+        # --- 3. Screenshoty ---
         for i, img in enumerate(s.screenshots[:2]):
             window.blit(img, (x_offset + i * 660, 200))
 
-        # 4. Szczegóły techniczne
+        # --- 4. Szczegóły techniczne ---
         details_y = 590
         info_list = [
             f"VERSION: {s.data.get('version', '1.0.0')}",
@@ -177,14 +195,22 @@ class GamePreview(BaseState):
             surf = font_small.render(text, True, theme['colour_3'])
             window.blit(surf, (x_offset, details_y + i * 28))
 
-        # 5. Opis z zawijaniem tekstu
+        # --- 5. Opis ---
         desc_rect = pygame.Rect(x_offset, 720, WINDOW_WIDTH - x_offset - 100, 200)
         s.draw_wrapped_text(window, s.data.get('description', ''), font_mid, theme['colour_4'], desc_rect)
         
-        # 6. Stopka
-        action_text = "[ENTER] Download" if s.status == GameStatus.NOT_INSTALLED else "[ENTER] Update"
-        if s.status == GameStatus.INSTALLED:
-            action_text = "Gra gotowa do uruchomienia"
+        # --- 6. Stopka ---
+        if is_busy:
+            # Blokujemy podpowiedź ENTER, zostawiamy tylko powrót
+            action_hint = "Please wait... | [B] Back"
+        else:
+            if s.status == GameStatus.INSTALLED:
+                action_text = "Gra gotowa do uruchomienia"
+            elif s.status == GameStatus.UPDATE_AVAILABLE:
+                action_text = "[ENTER] Update"
+            else:
+                action_text = "[ENTER] Download"
+            action_hint = f"{action_text} | [B] Back"
             
-        hint = font_mid.render(f"{action_text} | [B] Back", True, theme['colour_2'])
-        window.blit(hint, (x_offset, WINDOW_HEIGHT - 60))
+        hint_surf = font_mid.render(action_hint, True, theme['colour_2'])
+        window.blit(hint_surf, (x_offset, WINDOW_HEIGHT - 60))

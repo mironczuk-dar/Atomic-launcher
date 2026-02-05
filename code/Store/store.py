@@ -13,16 +13,16 @@ class Store(BaseState):
     def __init__(s, launcher):
         super().__init__(launcher)
 
-        #INTERNET
+        # INTERNET
         s.online = launcher.checking_internet_connection()
 
-        #SEARCHBAR
+        # SEARCHBAR
         s.searchbar = SearchBar(
             launcher,
             on_change = s.apply_search_filter
         )
 
-        #DATA ATTRIBUES
+        # DATA ATTRIBUTES
         s.manifest = {}
         s.all_games = []
         s.filtered_games = []
@@ -35,11 +35,9 @@ class Store(BaseState):
         s.scroll = 0
         s.scroll_speed = 400
 
-        #LOADING IN GAMES MANIFEST
+        # LOADING IN GAMES MANIFEST
         s.manifest_path = join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
         s.manifest = load_data(s.manifest_path, {})
-
-
 
     def load_store_entries(s):
         s.entries.clear()
@@ -54,13 +52,13 @@ class Store(BaseState):
             data = s.manifest[game_id]
             manifest_version = data.get('version')
 
-            #CHECKING GAME STATUS: DOWNLOAD | UPDATE | INSATALLED
-            if not s.launcher.installer.is_installed(game_id):
+            # --- NOWA LOGIKA STATUSÓW (Z UWZGLĘDNIENIEM POBIERANIA) ---
+            if s.launcher.installer.is_downloading and s.launcher.installer.current_game_id == game_id:
+                status = GameStatus.DOWNLOADING
+            elif not s.launcher.installer.is_installed(game_id):
                 status = GameStatus.NOT_INSTALLED
-
             elif s.launcher.installer.has_update(game_id, manifest_version):
                 status = GameStatus.UPDATE_AVAILABLE
-            
             else:
                 status = GameStatus.INSTALLED
 
@@ -87,13 +85,11 @@ class Store(BaseState):
         state_manager = s.launcher.state_manager
         controlls = s.launcher.controlls_data
 
-        #IF YOU'RE OFFLINE YOU CAN ONLY LEAVE THE STORE
         if not s.online:
             if keys[controlls['options']] or keys[controlls['left']]:
                 state_manager.ui_focus = "sidebar"
             return
 
-        #SEARCHBAR
         if state_manager.ui_focus == "searchbar":
             exited = s.searchbar.handle_events(events) 
             if exited:
@@ -101,9 +97,7 @@ class Store(BaseState):
                 s.searchbar.active = False
             return
 
-        #CONTENT NAVIGATION
         if state_manager.ui_focus == "content":
-
             if keys[s.launcher.controlls_data['up']]: 
                 if s.selected_index == 0:
                     state_manager.ui_focus = "searchbar"
@@ -119,6 +113,7 @@ class Store(BaseState):
                 state_manager.ui_focus = "sidebar"
 
             elif keys[pygame.K_RETURN] or keys[controlls['action_a']]:
+                # Blokujemy wejście w podgląd, jeśli ta konkretna gra się pobiera (opcjonalnie)
                 s.enter_game_preview()
 
     def update(s, delta_time):
@@ -127,14 +122,20 @@ class Store(BaseState):
         if not s.online or not s.entries:
             return
 
+        # --- AUTO-REFRESH STATUSÓW ---
+        # Jeśli instalator skończył pracę, a na liście nadal wisi status DOWNLOADING, odświeżamy listę.
+        # To pozwala na płynne przejście z "Downloading" do "Installed" bez wychodzenia ze sklepu.
+        is_any_entry_downloading = any(e.status == GameStatus.DOWNLOADING for e in s.entries)
+        if is_any_entry_downloading and not s.launcher.installer.is_downloading:
+            s.load_store_entries()
+
+        # Logika scrollowania
         current_entry_y = 150 + s.selected_index * (s.entry_height + s.spacing)
-        
         padding_top = 160
         padding_bottom = 50 
 
         if current_entry_y + s.entry_height > s.scroll + WINDOW_HEIGHT - padding_bottom:
             s.scroll = current_entry_y + s.entry_height - WINDOW_HEIGHT + padding_bottom
-
         if current_entry_y < s.scroll + padding_top:
             s.scroll = current_entry_y - padding_top
 
@@ -144,7 +145,6 @@ class Store(BaseState):
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         window.fill(theme['colour_1'])
 
-        #WHEN OFFLINE ONLY DRAW A MESSAGE ABOUT BEING OFFLINE
         if not s.online:
             font = pygame.font.SysFont(None, 48)
             text = font.render("OFFLINE", True, theme['colour_4'])
@@ -153,14 +153,14 @@ class Store(BaseState):
             super().draw(window)
             return
 
-        #DRAWING STORE ENTRIES
+        # DRAWING STORE ENTRIES
         for i, entry in enumerate(s.entries):
             selected = i == s.selected_index and s.launcher.state_manager.ui_focus == "content"
             entry.icon.set_selected(selected)
             entry.rect.top = 180 + i * (s.entry_height + s.spacing) - s.scroll
             entry.draw(window)
 
-        #DRAWING SEARCHBAR
+        # DRAWING SEARCHBAR
         s.searchbar.draw(window, focused=s.launcher.state_manager.ui_focus in ("searchbar", "topbar"))
 
         super().draw(window)
@@ -168,7 +168,6 @@ class Store(BaseState):
     def apply_search_filter(s, query):
         if not s.online:
             return
-
         query = query.lower()
         s.filtered_games = (
             [g for g in s.all_games if query in g.lower()]
@@ -181,35 +180,21 @@ class Store(BaseState):
     def enter_game_preview(s):
         if not s.entries:
             return
-
         entry = s.entries[s.selected_index]
-        
         preview_state = s.launcher.state_manager.states.get('Game preview')
-        
         if preview_state:
             preview_state.setup(entry.game_id, entry.game_data)
             s.launcher.state_manager.set_state('Game preview')
 
     def on_enter(s):
         s.online = s.launcher.checking_internet_connection()
-
-        s.entries.clear()
-        s.manifest.clear()
-        s.all_games.clear()
-        s.filtered_games.clear()
-        s.scroll = 0
-        s.selected_index = 0
-
-        #LOADING IN MANIFEST AGAIN IN CASE OF AN UPDATE WHILE LAUNCHER IS ON
         s.manifest = load_data(s.manifest_path, {})
-
         if s.online:
             s._load_online_data()
-
 
     def _load_online_data(s):
         s.all_games = list(s.manifest.keys())
         s.filtered_games = s.all_games.copy()
-        s.selected_index = 0
-        s.scroll = 0
+        # Zdejmujemy resetowanie indexu/scrolla przy każdym on_enter, 
+        # żeby powrót z GamePreview nie przewijał listy na samą górę.
         s.load_store_entries()

@@ -2,17 +2,17 @@
 # store_entry.py
 # ==========================
 import pygame
-from enum import Enum
+from enum import Enum, auto
 from os.path import join
 
 from settings import THEME_LIBRARY, BASE_DIR
 from UI.game_icon import GameIcon
 
-
-class GameStatus(str, Enum):
-    NOT_INSTALLED = "not_installed"
-    INSTALLED = "installed"
-    UPDATE_AVAILABLE = "update"
+class GameStatus(Enum):
+    NOT_INSTALLED = auto()
+    UPDATE_AVAILABLE = auto()
+    INSTALLED = auto()
+    DOWNLOADING = auto()
 
 
 class StoreEntry(pygame.sprite.Sprite):
@@ -87,7 +87,8 @@ class StoreEntry(pygame.sprite.Sprite):
         mapping = {
             GameStatus.NOT_INSTALLED: ("DOWNLOAD", theme['colour_3']),
             GameStatus.INSTALLED: ("INSTALLED", (0, 200, 0)),
-            GameStatus.UPDATE_AVAILABLE: ("UPDATE", (255, 170, 0))
+            GameStatus.UPDATE_AVAILABLE: ("UPDATE", (255, 170, 0)),
+            GameStatus.DOWNLOADING: ("DOWNLOADING...", (255, 255, 0)) 
         }
 
         label, color = mapping[self.status]

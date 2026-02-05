@@ -4,9 +4,10 @@ import pygame
 #IMPORTING FILES
 from UI.options_ui.FPS_preview_ball import Ball
 from Tools.data_loading_tools import save_data
+from Tools.asset_importing_tool import import_image
 from settings import CONTROLLS_DATA_PATH
 from settings import THEME_LIBRARY
-from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH
+from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH, BASE_DIR
 
 class GenericOptionsTab:
 
@@ -269,6 +270,9 @@ class ControlsOptionsTab(GenericOptionsTab):
         s.current_theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         s.initial_pos = (WINDOW_WIDTH * 0.18, 600)
         s.button_size = (280, 80)
+        s.controller_image = import_image(BASE_DIR, 'assets', 'option_assets', 'controlls_tab', 'controller')
+        s.controller_image = pygame.transform.scale_by(s.controller_image, 2)
+        s.controller_rect = s.controller_image.get_rect(center = (WINDOW_WIDTH/2+ WINDOW_WIDTH * 0.05, 450))
         
         s.font = pygame.font.SysFont(None, 60, False)
         s.value_font = pygame.font.SysFont(None, 45, False)
@@ -324,6 +328,7 @@ class ControlsOptionsTab(GenericOptionsTab):
 
     def draw(s, window):
         has_focus = (s.launcher.state_manager.ui_focus == 'content')
+        window.blit(s.controller_image, s.controller_rect)
         
         # Rysowanie każdej kolumny
         for col_idx, col_name in enumerate(s.column_names):
@@ -362,6 +367,7 @@ class ControlsOptionsTab(GenericOptionsTab):
                 text_surf = s.value_font.render(display_text, True, text_colour)
                 text_rect = text_surf.get_rect(center=rect.center)
                 window.blit(text_surf, text_rect)
+
 
     def update_control(s, action_name, new_key):
         s.launcher.controlls_data[action_name] = new_key

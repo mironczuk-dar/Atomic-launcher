@@ -9,6 +9,14 @@ from os.path import join, dirname, abspath
 BASE_DIR = dirname(dirname(abspath(__file__)))
 GAMES_DIR = join(BASE_DIR, 'games')
 
+
+#GAME LIBRARY SETTINGS
+GAME_LIBRARY_DATA_PATH = join(BASE_DIR, 'data', 'game_library_data.json')
+DEFAULT_GAME_LIBRARY_DATA = {
+    'favorites' : [],
+    'last_launched' : []
+}
+
 #CONTROLLS SETTIGNS
 CONTROLLS_DATA_PATH = join(BASE_DIR, 'data', 'controlls_data.json')
 DEFAULT_CONTROLLS_DATA = {

@@ -122,3 +122,13 @@ class Options(BaseState):
 
     def on_enter(s):
         s.launcher.state_manager.ui_focus = 'topbar'
+
+    def refresh_tabs(s):
+        """Metoda wywoływana po zmianie motywu, aby odświeżyć kolory w zakładkach."""
+        # Reinicjalizacja zakładek zaktualizuje s.current_theme w ich __init__
+        s.tabs = [
+            ('Video', VideoOptionsTab(s.launcher)),
+            ('Controlls', ControlsOptionsTab(s.launcher)),
+            ('Performance', PerformanceOptionsTab(s.launcher)),
+            ('Themes', ThemesOptionsTab(s.launcher)),
+        ]

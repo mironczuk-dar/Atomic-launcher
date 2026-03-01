@@ -2,18 +2,14 @@
 import pygame
 
 #IMPORTING FILES
+from settings import BASE_DIR
 from UI.options_ui.FPS_preview_ball import Ball
 from Tools.data_loading_tools import save_data
 from Tools.asset_importing_tool import import_image
 from settings import CONTROLLS_DATA_PATH
-<<<<<<< HEAD
-from settings import THEME_LIBRARY
-from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH, BASE_DIR
-=======
 from settings import THEME_LIBRARY, THEMES_DATA_PATH
 from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH
 from settings import PERFORMANCE_SETTINGS_DATA_PATH, THEME_LIBRARY, WINDOW_WIDTH
->>>>>>> cac572eec5c2defa7cf99c73f3ca28baa8de0078
 
 class GenericOptionsTab:
 

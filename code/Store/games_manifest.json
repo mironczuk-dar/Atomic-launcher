@@ -1,4 +1,14 @@
 {
+  "monster_masters": {
+    "name": "Monster masters",
+    "author": "Dariusz J. Mirończuk",
+    "repo": "https://github.com/mironczuk-dar/Monster-masters.git",
+    "branch": "main",
+    "version": "1.0.0",
+    "description": "A pokemon like game. Made with love...",
+    "tags" : ["adventure", "rpg", "pixel-art"],
+    "game_type": "Catching RPG"
+  },
   "pack_the_bag": {
     "name": "Pack the bag",
     "author": "plasmastarfish",

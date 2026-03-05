@@ -62,7 +62,7 @@ DEFAULT_THEME_DATA = {
     'current_theme' : 'Dariusz'
 }
 THEME_LIBRARY = {
-    'Dariusz' : {'colour_1' : "#240040",
+    'Violet' : {'colour_1' : "#240040",
                  'colour_2' : "#FF891C",
                  'colour_3' : "#41E9FF",
                  'colour_4' : "#550096"},
@@ -70,5 +70,20 @@ THEME_LIBRARY = {
     'High contrast' : {'colour_1' : "#0C0C0C",
                         'colour_2' : "#F9FF40",
                         'colour_3' : "#4DACFF",
-                        'colour_4' : "#353535"}
+                        'colour_4' : "#353535"},
+    
+    'Crimson' : {'colour_1' : "#2D0000",
+                 'colour_2' : "#DC143C",
+                 'colour_3' : "#FFD700",
+                 'colour_4' : "#600000"},
+
+    'Emerald' : {'colour_1' : "#002B1B",
+                 'colour_2' : "#50C878",
+                 'colour_3' : "#F0F0F054",
+                 'colour_4' : "#004B32"},
+
+    'Midnight' : {'colour_1' : "#0B132B",
+                  'colour_2' : "#5BC0BE",
+                  'colour_3' : "#FFFFFF6B",
+                  'colour_4' : "#1C2541"},
 }

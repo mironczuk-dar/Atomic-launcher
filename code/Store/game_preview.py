@@ -1,6 +1,6 @@
 import pygame
 from States.generic_state import BaseState
-from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
+from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY, BASE_DIR
 from UI.store_ui.store_entry import GameStatus
 from UI.store_ui.progress_bar import Bar  # Upewnij się, że ścieżka jest poprawna
 from os import listdir
@@ -39,7 +39,7 @@ class GamePreview(BaseState):
     def load_screenshots(s):
         """Ładuje screenshoty i dopasowuje je do 16:9 zachowując proporcje."""
         s.screenshots.clear()
-        path = join('assets', 'store_assets', s.game_id, 'screenshots')
+        path = join(BASE_DIR, 'assets', 'store_assets', s.game_id, 'screenshots')
         
         target_w, target_h = 640, 360
         target_ratio = target_w / target_h

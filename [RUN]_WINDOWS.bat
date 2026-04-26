@@ -2,6 +2,7 @@
 REM ==========================
 REM [RUN]_WINDOWS_UPDATER.bat
 REM ==========================
+setlocal
 
 cd /d "%~dp0"
 
@@ -12,6 +13,20 @@ IF %ERRORLEVEL% NEQ 0 (
     pause
     exit /b 1
 )
+
+REM --- CREATE VENV IF MISSING ---
+IF NOT EXIST ".venv\Scripts\python.exe" (
+    echo Creating virtual environment...
+    python -m venv .venv
+    IF %ERRORLEVEL% NEQ 0 (
+        echo Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
+)
+
+set "PYTHON=.venv\Scripts\python.exe"
+set "PIP=.venv\Scripts\pip.exe"
 
 REM --- SPRAWDZENIE INTERNETU ---
 ping -n 1 8.8.8.8 >nul
@@ -28,12 +43,12 @@ IF %ERRORLEVEL% EQU 0 (
     ) ELSE (
         REM --- OPCJA DLA UŻYTKOWNIKA BEZ GIT (POBIERANIE ZIP) ---
         echo Git not found. Downloading latest version via CURL...
-        
+
         REM Zmień poniższy URL na adres Twojego repozytorium
         set "REPO_URL=https://github.com/TWOJA_NAZWA/TWOJE_REPO/archive/refs/heads/main.zip"
-        
-        curl -L -o update.zip %REPO_URL%
-        
+
+        curl -L -o update.zip "%REPO_URL%"
+
         if exist "update.zip" (
             echo Extracting updates...
             REM Rozpakowywanie za pomocą wbudowanego PowerShell
@@ -51,13 +66,14 @@ IF %ERRORLEVEL% EQU 0 (
 
     REM --- AKTUALIZACJA PAKIETÓW PYTHON ---
     echo Checking Python packages...
-    python -m pip install --upgrade pygame-ce pytmx >nul
+    "%PYTHON%" -m pip install --upgrade pip >nul
+    "%PYTHON%" -m pip install --upgrade -r requirements.txt >nul
 ) ELSE (
     echo No internet connection. Starting in offline mode.
 )
 
 REM --- URUCHAMIANIE GRY ---
 echo Starting DonutPi OS...
-python code\main.py
+"%PYTHON%" code\main.py
 
 pause

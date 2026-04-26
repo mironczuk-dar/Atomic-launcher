@@ -59,7 +59,7 @@ DEFAULT_PERFORMANCE_SETTINGS_DATA = {
 #THEMES DATA
 THEMES_DATA_PATH = join(BASE_DIR, 'data', 'themes_data.json')
 DEFAULT_THEME_DATA = {
-    'current_theme' : 'Dariusz'
+    'current_theme' : 'Violet'
 }
 THEME_LIBRARY = {
     'Violet' : {'colour_1' : "#240040",

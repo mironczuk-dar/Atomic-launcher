@@ -1,15 +1,15 @@
-# --- Project Specifics ---
-# Ignore the entire games directory
+# User-specific folders
+data/
 games/
 
-# Ignore user data and saves (Assuming data/ contains settings/saves)
-data/
-
-# --- Python Defaults ---
+# Python bytecode (prevents __pycache__ folders from appearing)
 __pycache__/
 *.py[cod]
-*$py.class
 
-# OS-specific files
+# Environments (if you ever use a virtual environment)
+venv/
+.env
+
+# System files
 .DS_Store
 Thumbs.db

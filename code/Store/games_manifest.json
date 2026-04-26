@@ -9,6 +9,16 @@
     "tags" : ["adventure", "rpg", "pixel-art"],
     "game_type": "Catching RPG"
   },
+  "kitten_klicker": {
+    "name": "Kitten kicker",
+    "author": "Dariusz J. Mirończuk",
+    "repo": "https://github.com/mironczuk-dar/Kitten-klicker.git",
+    "branch": "main",
+    "version": "1.0.0",
+    "description": "Klick the kitten to make all the kitty koins!",
+    "tags" : ["pixel-art", "cozzy"],
+    "game_type": "Clicker"
+  },
   "pack_the_bag": {
     "name": "Pack the bag",
     "author": "plasmastarfish",

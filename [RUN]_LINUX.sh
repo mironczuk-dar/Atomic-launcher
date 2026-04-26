@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 # Ustaw katalog launchera na ten, w którym znajduje się skrypt
 cd "$(dirname "$0")" || { echo "Nie mogę zmienić katalogu!"; exit 1; }

@@ -2,7 +2,6 @@
 REM ==========================
 REM [RUN]_WINDOWS_UPDATER.bat
 REM ==========================
-setlocal
 
 cd /d "%~dp0"
 

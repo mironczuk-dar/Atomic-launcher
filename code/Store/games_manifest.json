@@ -29,6 +29,16 @@
     "tags" : ["pixel-art", "cozzy"],
     "game_type": "Point and click"
   },
+  "five_nights_at_pythons": {
+    "name": "Five Nights at Pythons",
+    "author": "Dariusz J. Mirończuk",
+    "repo": "https://github.com/mironczuk-dar/Five-Nights-at-Pythons.git",
+    "branch": "main",
+    "version": "1.0.0",
+    "description": "Five Nights at Pythons is a point and click horror game, where you have to survive 5 nights in a pizzeria full of python animatronics. The game is quite short, but it has a lot of jump scares, so be prepared!",
+    "tags" : ["horror", "maskot"],
+    "game_type": "Horror"
+  },
   "flappuccino": {
       "name": "Flappuccino",
       "author": "PolyMars",

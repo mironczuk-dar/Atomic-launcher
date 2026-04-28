@@ -5,7 +5,7 @@ import pygame
 from settings import WINDOW_WIDTH, THEME_LIBRARY
 
 class SearchBar:
-    def __init__(self, launcher, on_change):
+    def __init__(self, launcher, on_change, x=None, y=None):
         self.launcher = launcher
         self.on_change = on_change
 
@@ -14,6 +14,10 @@ class SearchBar:
 
         self.h = int(WINDOW_WIDTH * 0.1)
         self.font = pygame.font.SysFont(None, int(WINDOW_WIDTH * 0.035))
+
+        # NEW
+        self.custom_x = x
+        self.custom_y = y
 
     # =========================
     # INPUT
@@ -51,10 +55,10 @@ class SearchBar:
     def draw(self, window, focused):
         theme = THEME_LIBRARY[self.launcher.theme_data['current_theme']]
 
-        bar_w = int(WINDOW_WIDTH * 0.5)
+        bar_w = int(WINDOW_WIDTH * 0.3)
         bar_h = int(self.h * 0.55)
-        bar_x = WINDOW_WIDTH // 2 - bar_w // 2
-        bar_y = self.h // 2 - bar_h // 2
+        bar_x = self.custom_x if self.custom_x is not None else WINDOW_WIDTH // 2 - bar_w // 2
+        bar_y = self.custom_y if self.custom_y is not None else self.h // 2 - bar_h // 2
 
         if focused and self.active:
             border = theme['colour_3']

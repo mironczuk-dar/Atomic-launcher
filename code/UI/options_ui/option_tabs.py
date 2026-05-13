@@ -28,22 +28,53 @@ class VideoOptionsTab(GenericOptionsTab):
         super().__init__(launcher)
 
         s.current_theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
-        s.initial_pos = (WINDOW_WIDTH * 0.15 + 10, 200)
-        s.resolution_button_size = (400, 180)
-        s.FPS_button_size = (400, 120)
-
-        s.font = pygame.font.SysFont(None, 80, False)
-        s.value_font = pygame.font.SysFont(None, 60, False)
-
-        s.resolution_options = {
-            'Fullscreen' : None,
-            1080 : [1920, 1080],
-            720 : [1280, 720],
-            360 : [640, 360]
-        }
+        
+        # Responsive layout based on aspect ratio
+        s.aspect_ratio = WINDOW_WIDTH / WINDOW_HEIGHT
+        
+        # Resolution options as ordered list for grid layout
+        # Optimized for Raspberry Pi and various displays
+        s.resolution_list = [
+            ('Fullscreen', None),
+            ('1280x720 (16:9)', [1280, 720]),
+            ('1024x768 (4:3)', [1024, 768]),
+            ('1024x600 (17:10)', [1024, 600]),
+            ('800x600 (4:3)', [800, 600]),
+            ('800x480 (16:9)', [800, 480]),
+            ('640x480 (4:3)', [640, 480]),
+            ('640x360 (16:9)', [640, 360]),
+            ('720x480 (3:2)', [720, 480])
+        ]
+        
+        # Grid layout: 2 columns on the left for resolutions
+        s.resolution_cols = 2
+        s.resolution_button_width = int(WINDOW_WIDTH * 0.18)
+        s.resolution_button_height = int(WINDOW_HEIGHT * 0.11)
+        s.resolution_spacing_x = int(WINDOW_WIDTH * 0.015)
+        s.resolution_spacing_y = int(WINDOW_HEIGHT * 0.015)
+        s.resolution_grid_start_x = int(WINDOW_WIDTH * 0.12)
+        s.resolution_grid_start_y = int(WINDOW_HEIGHT * 0.20)
+        
+        # FPS column in the middle, 1 column layout
+        s.fps_col_x = int(WINDOW_WIDTH * 0.55)
+        s.fps_button_width = int(WINDOW_WIDTH * 0.18)
+        s.fps_button_height = int(WINDOW_HEIGHT * 0.08)
+        s.fps_spacing_y = int(WINDOW_HEIGHT * 0.015)
+        s.fps_col_start_y = int(WINDOW_HEIGHT * 0.20)
+        
+        # FPS preview ball positioned to the right of FPS buttons
+        s.ball_x = int(WINDOW_WIDTH * 0.88)
+        s.ball_y = int(WINDOW_HEIGHT * 0.35)
+        
+        # Responsive fonts
+        s.font = pygame.font.SysFont(None, int(WINDOW_HEIGHT * 0.06), False)
+        s.value_font = pygame.font.SysFont(None, int(WINDOW_HEIGHT * 0.035), False)
+        s.header_font = pygame.font.SysFont(None, int(WINDOW_HEIGHT * 0.04), True)
+        s.fps_label_font = pygame.font.SysFont(None, int(WINDOW_HEIGHT * 0.03), False)
+        
         s.FPS_options = ['Uncapped', 90, 60, 40, 30]
 
-        s.FPS_preview_ball = Ball((WINDOW_WIDTH * 0.8, 50), s.current_theme['colour_2'])
+        s.FPS_preview_ball = Ball((s.ball_x, s.ball_y), s.current_theme['colour_2'])
 
         s.active_column = 'resolution'   # 'resolution' | 'fps'
         s.resolution_index = 0
@@ -58,45 +89,60 @@ class VideoOptionsTab(GenericOptionsTab):
         if s.launcher.state_manager.ui_focus != 'content':
             return
 
-
-        # --- MOVE BETWEEN COLUMNS ---
-        if keys[ctrl['left']] or keys[ctrl['right']]:
-            s.active_column = 'fps' if s.active_column == 'resolution' else 'resolution'
-
-        # --- MOVE UP / DOWN ---
-        if keys[ctrl['up']]:
-            if s.active_column == 'resolution':
-                s.resolution_index = max(0, s.resolution_index - 1)
-            else:
-                s.fps_index = max(0, s.fps_index - 1)
-
-        elif keys[ctrl['down']]:
-            if s.active_column == 'resolution':
-                s.resolution_index = min(
-                    len(s.get_resolution_keys()) - 1,
-                    s.resolution_index + 1
-                )
-            else:
-                s.fps_index = min(
-                    len(s.get_fps_values()) - 1,
-                    s.fps_index + 1
-                )
+        # --- MOVE UP / DOWN / LEFT / RIGHT ---
+        if s.active_column == 'resolution':
+            col = s.resolution_index % s.resolution_cols
+            row = s.resolution_index // s.resolution_cols
+            
+            if keys[ctrl['up']]:
+                if row > 0:
+                    s.resolution_index -= s.resolution_cols
+            elif keys[ctrl['down']]:
+                if (row + 1) * s.resolution_cols + col < len(s.resolution_list):
+                    s.resolution_index += s.resolution_cols
+            
+            if keys[ctrl['left']]:
+                if col > 0:
+                    # Move to left column in same row
+                    s.resolution_index -= 1
+                # If at col 0, stay there (can't go further left)
+            elif keys[ctrl['right']]:
+                if col < s.resolution_cols - 1:
+                    # Move to right column in same row
+                    s.resolution_index += 1
+                else:
+                    # At rightmost column, switch to FPS column
+                    s.active_column = 'fps'
+        
+        else:  # fps column
+            if keys[ctrl['up']]:
+                if s.fps_index > 0:
+                    s.fps_index -= 1
+            elif keys[ctrl['down']]:
+                if s.fps_index < len(s.FPS_options) - 1:
+                    s.fps_index += 1
+            
+            if keys[ctrl['left']]:
+                # Switch back to resolution at rightmost column
+                s.active_column = 'resolution'
+                # Position at rightmost column, aligned with FPS row
+                row = min(s.fps_index, (len(s.resolution_list) - 1) // s.resolution_cols)
+                s.resolution_index = row * s.resolution_cols + (s.resolution_cols - 1)
+            elif keys[ctrl['right']]:
+                # Can't go further right from FPS
+                pass
 
         # --- CONFIRM ---
-        if s.active_column == 'resolution':
-            key = s.get_resolution_keys()[s.resolution_index]
-
-            if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
-                if key == 'Fullscreen':
+        if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
+            if s.active_column == 'resolution':
+                res_label, res_dims = s.resolution_list[s.resolution_index]
+                if res_label == 'Fullscreen':
                     s.go_fullscreen()
                 else:
-                    width, height = s.resolution_options[key]
+                    width, height = res_dims
                     s.change_resolution(width, height)
-
-        else:
-            fps = s.get_fps_values()[s.fps_index]
-
-            if keys[ctrl['action_a']] or keys[pygame.K_RETURN]:
+            else:
+                fps = s.FPS_options[s.fps_index]
                 if fps == 'Uncapped':
                     s.update_fps(0)
                 else:
@@ -109,20 +155,30 @@ class VideoOptionsTab(GenericOptionsTab):
         has_focus = (s.launcher.state_manager.ui_focus == 'content')
 
         s.FPS_preview_ball.draw(window)
+        
+        # Draw headers
+        res_header = s.header_font.render("Resolution", True, s.current_theme['colour_2'])
+        window.blit(res_header, (s.resolution_grid_start_x, s.resolution_grid_start_y - int(WINDOW_HEIGHT * 0.06)))
+        
+        fps_header = s.header_font.render("FPS", True, s.current_theme['colour_2'])
+        window.blit(fps_header, (s.fps_col_x, s.fps_col_start_y - int(WINDOW_HEIGHT * 0.06)))
 
-        s.draw_resolution_buttons(window, has_focus)
+        s.draw_resolution_grid(window, has_focus)
         s.draw_FPS_buttons(window, has_focus)
         s.draw_current_settings(window)
 
-    def draw_resolution_buttons(s, window, has_focus):
-        for i, key in enumerate(s.resolution_options.keys()):
+    def get_resolution_grid_pos(s, index):
+        """Calculate grid position for a resolution button."""
+        row = index // s.resolution_cols
+        col = index % s.resolution_cols
+        x = s.resolution_grid_start_x + col * (s.resolution_button_width + s.resolution_spacing_x)
+        y = s.resolution_grid_start_y + row * (s.resolution_button_height + s.resolution_spacing_y)
+        return x, y
 
-            is_selected = (
-                s.active_column == 'resolution' and
-                i == s.resolution_index
-            )
-
-            is_current = s.is_current_resolution(key)
+    def draw_resolution_grid(s, window, has_focus):
+        for i, (res_label, res_dims) in enumerate(s.resolution_list):
+            is_selected = (s.active_column == 'resolution' and i == s.resolution_index)
+            is_current = s.is_current_resolution(res_label)
 
             bg_colour = (
                 s.current_theme['colour_2']
@@ -131,36 +187,33 @@ class VideoOptionsTab(GenericOptionsTab):
             )
 
             text_colour = get_contrast_text_color(bg_colour)
+            x, y = s.get_resolution_grid_pos(i)
 
-            button_surf = pygame.Surface(s.resolution_button_size)
-            button_surf.fill(bg_colour)
+            rect = pygame.Rect(x, y, s.resolution_button_width, s.resolution_button_height)
+            pygame.draw.rect(window, bg_colour, rect, border_radius=8)
 
-            # 🔹 RAMKA = OBECNIE UŻYWANA OPCJA
+            # Current resolution indicator
             if is_current:
-                pygame.draw.rect(
-                    button_surf,
-                    (0, 200, 0),
-                    button_surf.get_rect(),
-                    6
-                )
+                pygame.draw.rect(window, (0, 200, 0), rect, 4, border_radius=8)
 
-            # 🔹 FOCUS INDICATOR = AKTUALNIE ZAZNACZONY ELEMENT
+            # Focus indicator
             if is_selected and has_focus:
-                pygame.draw.rect(
-                    button_surf,
-                    (255, 200, 0),
-                    button_surf.get_rect(),
-                    4
-                )
+                pygame.draw.rect(window, (255, 200, 0), rect, 3, border_radius=8)
 
-            x = s.initial_pos[0]
-            y = s.initial_pos[1] + i * (s.resolution_button_size[1] + 10)
-
-            text_surface = s.value_font.render(str(key), False, text_colour)
-            text_rect = text_surface.get_rect(center=button_surf.get_rect().center)
-
-            button_surf.blit(text_surface, text_rect)
-            window.blit(button_surf, (x, y))
+            # Text - fit resolution label into button
+            display_text = res_label
+            text_surf = s.value_font.render(display_text, True, text_colour)
+            
+            # Scale down text if it's too wide
+            max_text_width = s.resolution_button_width - int(WINDOW_WIDTH * 0.01)
+            if text_surf.get_width() > max_text_width:
+                scale_factor = max_text_width / text_surf.get_width()
+                scaled_font_size = max(int(s.value_font.get_height() * scale_factor), 10)
+                small_font = pygame.font.SysFont(None, scaled_font_size, False)
+                text_surf = small_font.render(display_text, True, text_colour)
+            
+            text_rect = text_surf.get_rect(center=rect.center)
+            window.blit(text_surf, text_rect)
 
     def draw_FPS_buttons(s, window, has_focus):
         for i, fps in enumerate(s.FPS_options):
@@ -180,41 +233,47 @@ class VideoOptionsTab(GenericOptionsTab):
 
             text_colour = get_contrast_text_color(bg_colour)
 
-            button_surf = pygame.Surface(s.FPS_button_size)
-            button_surf.fill(bg_colour)
+            x = s.fps_col_x
+            y = s.fps_col_start_y + i * (s.fps_button_height + s.fps_spacing_y)
+            
+            rect = pygame.Rect(x, y, s.fps_button_width, s.fps_button_height)
+            pygame.draw.rect(window, bg_colour, rect, border_radius=8)
 
-            # 🔹 RAMKA = AKTUALNY FPS
+            # Current FPS indicator
             if is_current:
-                pygame.draw.rect(
-                    button_surf,
-                    (0, 200, 0),
-                    button_surf.get_rect(),
-                    6
-                )
+                pygame.draw.rect(window, (0, 200, 0), rect, 4, border_radius=8)
 
-            # 🔹 FOCUS INDICATOR = AKTUALNIE ZAZNACZONY ELEMENT
+            # Focus indicator
             if is_selected and has_focus:
-                pygame.draw.rect(
-                    button_surf,
-                    (255, 200, 0),
-                    button_surf.get_rect(),
-                    4
-                )
+                pygame.draw.rect(window, (255, 200, 0), rect, 3, border_radius=8)
 
-            x = s.initial_pos[0] + s.FPS_button_size[0] + 50
-            y = s.initial_pos[1] + i * (s.FPS_button_size[1] + 10)
-
-            text_surface = s.value_font.render(str(fps), False, text_colour)
-            text_rect = text_surface.get_rect(center=button_surf.get_rect().center)
-
-            button_surf.blit(text_surface, text_rect)
-            window.blit(button_surf, (x, y))
-
-    def get_resolution_keys(s):
-        return list(s.resolution_options.keys())
+            fps_text = str(fps) if fps != 'Uncapped' else 'Uncapped'
+            text_surface = s.fps_label_font.render(fps_text, True, text_colour)
+            text_rect = text_surface.get_rect(center=rect.center)
+            window.blit(text_surface, text_rect)
 
     def get_fps_values(s):
         return s.FPS_options
+    
+    def is_current_fps(s, fps):
+        if fps == 'Uncapped':
+            return s.launcher.window_data['fps'] == 0
+        return s.launcher.window_data['fps'] == fps
+
+    def is_current_resolution(s, res_label):
+        if res_label == 'Fullscreen':
+            return s.launcher.window_data['fullscreen']
+
+        # Find dimensions for this label
+        for label, dims in s.resolution_list:
+            if label == res_label and dims is not None:
+                width, height = dims
+                return (
+                    not s.launcher.window_data['fullscreen'] and
+                    s.launcher.window_data['width'] == width and
+                    s.launcher.window_data['height'] == height
+                )
+        return False
 
     #METHOD FOR CHANGING THE RESOLUTION
     def change_resolution(s, width, height):
@@ -251,28 +310,12 @@ class VideoOptionsTab(GenericOptionsTab):
 
         save_data(s.launcher.window_data, WINDOW_DATA_PATH)
 
-    def is_current_resolution(s, key):
-        if key == 'Fullscreen':
-            return s.launcher.window_data['fullscreen']
-
-        width, height = s.resolution_options[key]
-        return (
-            not s.launcher.window_data['fullscreen'] and
-            s.launcher.window_data['width'] == width and
-            s.launcher.window_data['height'] == height
-        )
-    
-    def is_current_fps(s, fps):
-        if fps == 'Uncapped':
-            return s.launcher.window_data['fps'] == 0
-        return s.launcher.window_data['fps'] == fps
-
     def draw_current_settings(s, window):
         text = f"Resolution: {s.launcher.window_data['width']}x{s.launcher.window_data['height']} | FPS: "
         text += "Uncapped" if s.launcher.window_data['fps'] == 0 else str(s.launcher.window_data['fps'])
 
         surf = s.font.render(text, True, s.current_theme['colour_2'])
-        window.blit(surf, (WINDOW_WIDTH * 0.15, WINDOW_HEIGHT - 80))
+        window.blit(surf, (s.resolution_grid_start_x, WINDOW_HEIGHT - int(WINDOW_HEIGHT * 0.12)))
 
 class ControlsOptionsTab(GenericOptionsTab):
     def __init__(s, launcher):

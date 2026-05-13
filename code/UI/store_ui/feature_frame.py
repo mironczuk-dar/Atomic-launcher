@@ -25,17 +25,30 @@ class FeatureFrame:
         s.frame_rect = pygame.Rect(0, 0, 0, 0)
         s.screenshots = {}
         s.current_screenshot_index = {}
+        s.icon_cache = {}
+        s.feature_reasons = {}
+        s.scaled_screenshot_cache = {}
+        s.title_font = pygame.font.SysFont(None, 48, bold=True)
+        s.body_font = pygame.font.SysFont(None, 30)
+        s.arrow_font = pygame.font.SysFont(None, 42, bold=True)
+        s.label_font = pygame.font.SysFont(None, 28, bold=True)
         s.load_all_screenshots()
 
     def _load_featured_games(s):
         featured_data = load_data(s.feature_data_path, {})
         games_dict = featured_data.get('featured_games', {})
+        s.feature_reasons = {}
         
         # Handle both old list format and new dict format
         if isinstance(games_dict, list):
             game_ids = [gid for gid in games_dict if gid in s.manifest]
         else:
-            game_ids = [item['game'] for item in games_dict.values() if item.get('game') in s.manifest]
+            game_ids = []
+            for item in games_dict.values():
+                game_id = item.get('game')
+                if game_id in s.manifest:
+                    game_ids.append(game_id)
+                    s.feature_reasons[game_id] = item.get('reason', '')
         
         return game_ids
 
@@ -61,10 +74,11 @@ class FeatureFrame:
         s.featured_games = s._load_featured_games()
         s.current_index = min(s.current_index, len(s.featured_games) - 1) if s.featured_games else 0
         s.screenshot_timer = 0.0
+        s.scaled_screenshot_cache.clear()
         s.load_all_screenshots()
 
     def update(s, delta_time):
-        if not s.featured_games or not s.launcher.checking_internet_connection():
+        if not s.featured_games or not s.launcher.online_mode:
             return
 
         s.screenshot_timer += delta_time
@@ -131,7 +145,7 @@ class FeatureFrame:
             s.slide_timer = 0.0
 
     def draw(s, window, theme, scroll_offset=0):
-        if not s.featured_games or not s.launcher.checking_internet_connection():
+        if not s.featured_games or not s.launcher.online_mode:
             return
 
         # Available content area after sidebar
@@ -168,7 +182,7 @@ class FeatureFrame:
         if game_id in s.screenshots and len(s.screenshots[game_id]) > 0:
             screenshot_idx = s.current_screenshot_index.get(game_id, 0)
             screenshot = s.screenshots[game_id][screenshot_idx]
-            scaled_bg = s._scale_screenshot(screenshot, frame_w - 6, frame_h - 6)
+            scaled_bg = s._get_cached_scaled_screenshot(game_id, screenshot_idx, screenshot, frame_w - 6, frame_h - 6)
             window.blit(scaled_bg, (frame_x + 3, frame_y + 3))
 
         # Vignette overlay (dark edges, lighter center)
@@ -200,13 +214,11 @@ class FeatureFrame:
         pygame.draw.rect(window, theme['colour_1'], icon_bg, border_radius=18)
         pygame.draw.rect(window, theme['colour_2'], icon_bg, 3, border_radius=18)
 
-        # Draw game icon
-        try:
-            icon_path = join(BASE_DIR, 'assets', 'store_assets', game_id, 'icon')
-            icon = import_image(icon_path)
-            icon = pygame.transform.smoothscale(icon, (icon_size, icon_size))
+        # Draw game icon with caching
+        icon = s._get_cached_icon(game_id, icon_size)
+        if icon:
             window.blit(icon, (icon_x, icon_y))
-        except Exception:
+        else:
             pygame.draw.rect(window, theme['colour_3'], (icon_x, icon_y, icon_size, icon_size), border_radius=14)
 
         # Game name and reason text
@@ -216,19 +228,17 @@ class FeatureFrame:
         game_data = s.manifest.get(game_id, {})
         
         # Title with enhanced styling
-        title_font = pygame.font.SysFont(None, 48, bold=True)
-        title_surf = title_font.render(game_data.get('name', 'Unknown Game'), True, theme['colour_2'])
+        title_surf = s.title_font.render(game_data.get('name', 'Unknown Game'), True, theme['colour_2'])
         window.blit(title_surf, (text_x, icon_y + 5))
 
         # Reason text with better styling
         reason = s._get_reason_text(game_id)
         if reason:
-            body_font = pygame.font.SysFont(None, 30)
-            wrapped_reason = s._wrap_text(reason, body_font, text_max_width, max_lines=3)
+            wrapped_reason = s._wrap_text(reason, s.body_font, text_max_width, max_lines=3)
             y = icon_y + 60
             text_color = (240, 240, 240)
             for line in wrapped_reason:
-                line_surf = body_font.render(line, True, text_color)
+                line_surf = s.body_font.render(line, True, text_color)
                 window.blit(line_surf, (text_x, y))
                 y += line_surf.get_height() + 6
 
@@ -249,9 +259,8 @@ class FeatureFrame:
             pygame.draw.rect(window, theme['colour_2'], button_rect, border_radius=16)
             pygame.draw.rect(window, (255, 255, 255, 50), button_rect, 2, border_radius=16)
 
-        arrow_font = pygame.font.SysFont(None, 42, bold=True)
-        left_surf = arrow_font.render('<', True, theme['colour_1'])
-        right_surf = arrow_font.render('>', True, theme['colour_1'])
+        left_surf = s.arrow_font.render('<', True, theme['colour_1'])
+        right_surf = s.arrow_font.render('>', True, theme['colour_1'])
         window.blit(left_surf, left_surf.get_rect(center=s.left_rect.center))
         window.blit(right_surf, right_surf.get_rect(center=s.right_rect.center))
 
@@ -273,22 +282,37 @@ class FeatureFrame:
                 pygame.draw.circle(window, theme['colour_3'], (dot_x, indicator_y), dot_radius)
 
         # "FEATURED" label in top-right
-        label_font = pygame.font.SysFont(None, 28, bold=True)
-        label_text = label_font.render('FEATURED', True, theme['colour_2'])
+        label_text = s.label_font.render('FEATURED', True, theme['colour_2'])
         label_x = s.frame_rect.right - label_text.get_width() - 25
         label_y = s.frame_rect.top + 20
         window.blit(label_text, (label_x, label_y))
 
     def _get_reason_text(s, game_id):
-        featured_data = load_data(s.feature_data_path, {})
-        games_dict = featured_data.get('featured_games', {})
-        
-        if isinstance(games_dict, dict):
-            for item in games_dict.values():
-                if item.get('game') == game_id:
-                    return item.get('reason', '')
-        
-        return ''
+        return s.feature_reasons.get(game_id, '')
+
+    def _get_cached_icon(s, game_id, icon_size):
+        cache_key = (game_id, icon_size)
+        if cache_key in s.icon_cache:
+            return s.icon_cache[cache_key]
+
+        icon_path = join(BASE_DIR, 'assets', 'store_assets', game_id, 'icon')
+        try:
+            icon = import_image(icon_path)
+            icon = pygame.transform.smoothscale(icon, (icon_size, icon_size))
+            s.icon_cache[cache_key] = icon
+            return icon
+        except Exception:
+            s.icon_cache[cache_key] = None
+            return None
+
+    def _get_cached_scaled_screenshot(s, game_id, screenshot_idx, img, target_w, target_h):
+        cache_key = (game_id, screenshot_idx, target_w, target_h)
+        if cache_key in s.scaled_screenshot_cache:
+            return s.scaled_screenshot_cache[cache_key]
+
+        scaled = s._scale_screenshot(img, target_w, target_h)
+        s.scaled_screenshot_cache[cache_key] = scaled
+        return scaled
 
     def _wrap_text(s, text, font, max_width, max_lines=4):
         words = text.split(' ')

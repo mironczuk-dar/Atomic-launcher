@@ -88,9 +88,8 @@ class Library(BaseState):
                 key = event.key
 
                 if s.navigation_tutorial.is_active():
-                    # Note: You may need to update handle_input to accept a single key
-                    s.navigation_tutorial.handle_input(key) 
-                    return
+                    if s.navigation_tutorial.handle_input(events):
+                        return
 
                 if s.searchbar.active:
                     s.searchbar.handle_events(events)

@@ -66,7 +66,7 @@ IF %ERRORLEVEL% EQU 0 (
     REM --- AKTUALIZACJA PAKIETÓW PYTHON ---
     echo Checking Python packages...
     "%PYTHON%" -m pip install --upgrade pip >nul
-    "%PYTHON%" -m pip install --upgrade -r requirements.txt >nul
+    "%PYTHON%" -m pip install --upgrade pygame-ce pytmx >nul
 ) ELSE (
     echo No internet connection. Starting in offline mode.
 )

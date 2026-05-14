@@ -4,10 +4,6 @@ from sys import exit
 from os import environ
 import platform
 import socket
-try:
-    from gpiozero import Button
-except ImportError:
-    Button = None
 
 
 #IMPORTING FILES
@@ -25,7 +21,7 @@ from Store.game_preview import GamePreview
 
 #RASPBERRY PI GPIO CONTROLLER
 try:
-    from Tools.raspberry_pi_gpio import RaspberryPiGPIOController
+    from Drivers.raspberry_pi_gpio import RaspberryPiGPIOController
 except ImportError:
     RaspberryPiGPIOController = None
 
@@ -54,13 +50,8 @@ class Launcher:
         #LOADING IN LAUNCHER DATA
         s.loading_in_launcher_data()
 
-        # --- UPDATED GPIO INITIALIZATION ---
-        s.buttons = {} # Stores our Button objects
-        s.gpio_btn_states = {} 
-        
-        if s.is_pi and Button:
-            s.setup_gpio()
-            print(f"System: {s.system}, Is Pi: {s.is_pi}")
+        #LOADING IN THE GPIO CONTROLLER
+        s.setup_gpio_controller()
 
         #SETTING UP THE DISPLAY
         s.setting_up_display()
@@ -70,6 +61,8 @@ class Launcher:
         s.window = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         s.screen = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption('[ATOMIC LAUNCHER]')
+        pygame.display.set_icon(pygame.image.load(join(BASE_DIR, 'assets', 'icon.png')))
+
 
         #INITALIZING CLOCK
         s.clock = pygame.time.Clock()
@@ -87,39 +80,20 @@ class Launcher:
         s.game_process = None
         s.game_running = False
 
-    def setup_gpio(s):
-        """Initializes pins using gpiozero (compatible with Pi 5)."""
-        for action, pin in s.gpio_controlls_data.items():
-            try:
-                # pull_up=True means we connect the button between Pin and GND
-                s.buttons[action] = Button(pin, pull_up=True)
-                s.gpio_btn_states[action] = False
-            except Exception as e:
-                print(f"Could not initialize GPIO pin {pin} for {action}: {e}")
+    #METHOD FOR SETTING UP THE GPIO CONTROLLER
+    def setup_gpio_controller(s):
+        s.gpio_controller = None
+        if s.is_pi and RaspberryPiGPIOController:
+            s.gpio_controller = RaspberryPiGPIOController(
+                s.gpio_controlls_data,
+                s.controlls_data['keyboard']
+            )
+            print(f"System: {s.system}, Is Pi: {s.is_pi}")
 
+    #METHOD FOR POLLING GPIO CONTROLLER
     def poll_gpio(s):
-        """Checks Button states and injects Pygame events."""
-        if not s.is_pi or not s.buttons:
-            return
-
-        for action, btn in s.buttons.items():
-            # In gpiozero, .is_pressed returns True if the button is pushed
-            is_pressed = btn.is_pressed
-            
-            if is_pressed and not s.gpio_btn_states[action]:
-                print(f"GPIO {action} triggered!")
-                # Button Pressed -> Post KEYDOWN
-                key_to_simulate = s.controlls_data['keyboard'].get(action)
-                if key_to_simulate:
-                    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {'key': key_to_simulate}))
-                s.gpio_btn_states[action] = True
-
-            elif not is_pressed and s.gpio_btn_states[action]:
-                # Button Released -> Post KEYUP
-                key_to_simulate = s.controlls_data['keyboard'].get(action)
-                if key_to_simulate:
-                    pygame.event.post(pygame.event.Event(pygame.KEYUP, {'key': key_to_simulate}))
-                s.gpio_btn_states[action] = False
+        if s.gpio_controller:
+            s.gpio_controller.poll()
 
     #METHOD FOR CHECKING OPERATING SYSTEM
     def checking_operating_system(s):
@@ -192,6 +166,10 @@ class Launcher:
 
     #METHOD FOR HANDLING EVENTS
     def handling_events(s):
+
+        #POLLING GPIO CONTROLLER
+        s.poll_gpio()
+
         events = pygame.event.get()
         for event in events:
 
@@ -217,7 +195,6 @@ class Launcher:
 
             #USER BUTTON INPUT
             if event.type == pygame.KEYDOWN:
-                print(f"Event Loop detected key: {event.key}")
 
                 #CLOSING LAUNCHER IF 'ESCAPE' BUTTON PRESSED
                 if event.key == pygame.K_ESCAPE:
@@ -246,6 +223,7 @@ class Launcher:
 
     #METHOD FOR UPDATING THE LAUNCHER
     def update(s):
+
         # LOWERING FPS IF THERE'S A GAME RUNNING
         if s.game_running:
             s.delta_time = s.clock.tick(s.performance_settings_data['decrease_launcher_fps_when_game_active']) / 1000
@@ -282,10 +260,6 @@ class Launcher:
 
         #MAIN APPLICATION LOOP
         while True:
-
-            # 1. Check GPIO before standard event handling
-            print("Polling...")
-            s.poll_gpio()
 
             #HANDILING EVENTS
             s.handling_events()

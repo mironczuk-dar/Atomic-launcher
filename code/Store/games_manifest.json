@@ -5,7 +5,7 @@
     "repo": "https://github.com/mironczuk-dar/Monster-masters.git",
     "branch": "main",
     "version": "1.0.0",
-    "description": "A pokemon like game. Made with love...",
+    "description": "A monster catching RPG, where you have to catch and train monsters to become the best monster master in the world! The game is quite short, but it has a lot of content, so be prepared for a long adventure!",
     "tags" : ["adventure", "rpg", "pixel-art"],
     "game_type": "Catching RPG",
     "controls": "Keyboard"
@@ -16,7 +16,7 @@
     "repo": "https://github.com/mironczuk-dar/Kitten-klicker.git",
     "branch": "main",
     "version": "1.0.0",
-    "description": "Klick the kitten to make all the kitty koins!",
+    "description": "Klick the kitten to make all the kitty koins! Get new jobs to get more kitty koins, and buy upgrades to get even more kitty koins!",
     "tags" : ["pixel-art", "cozzy"],
     "game_type": "Clicker",
     "controls": "Mouse"
@@ -82,7 +82,7 @@
     "repo": "https://github.com/mironczuk-dar/Flappy-bird.git",
     "branch": "main",
     "version": "1.0.1",
-    "description": "Get over the pipes!",
+    "description": "A python remake of the famous mobile game, where you have to fly through pipes without hitting them. The game is quite simple, but it can be quite challenging, especially if you want to beat your high score!",
     "tags" : ["arcade"],
     "game_type": "Arcade",
     "controls": "Keyboard"

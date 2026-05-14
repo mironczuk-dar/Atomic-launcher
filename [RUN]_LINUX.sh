@@ -22,6 +22,9 @@ if [ -f "$MODEL_FILE" ]; then
         sudo apt update --quiet
         sudo apt install -y --quiet swig python3-dev build-essential python3-rpi.gpio python3-pigpio python3-lgpio
         echo "GPIO backends installed."
+        echo "Recreating virtual environment with system site packages..."
+        rm -rf .venv
+        python3 -m venv --system-site-packages .venv
     else
         echo "Not a Raspberry Pi, skipping GPIO backend install."
     fi
@@ -29,23 +32,10 @@ else
     echo "Model file not found, assuming not Raspberry Pi."
 fi
 
-# Create venv if missing or recreate it for Raspberry Pi system site packages
-VENV_CFG=".venv/pyvenv.cfg"
+# Create venv if missing
 if [ ! -d ".venv" ]; then
     echo "Creating virtual environment..."
-    if echo "$MODEL" | grep -q "Raspberry Pi"; then
-        python3 -m venv --system-site-packages .venv
-    else
-        python3 -m venv .venv
-    fi
-else
-    if echo "$MODEL" | grep -q "Raspberry Pi"; then
-        if ! grep -q "^include-system-site-packages = true" "$VENV_CFG" 2>/dev/null; then
-            echo "Recreating virtual environment with system site packages..."
-            rm -rf .venv
-            python3 -m venv --system-site-packages .venv
-        fi
-    fi
+    python3 -m venv .venv
 fi
 
 # Use venv Python/Pip

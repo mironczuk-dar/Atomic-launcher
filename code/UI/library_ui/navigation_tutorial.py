@@ -27,7 +27,7 @@ class NavigationTutorial:
             return False
 
         controls = self.launcher.controlls_data
-        if keys[pygame.K_RETURN] or keys[controls['action_a']]:
+        if keys[pygame.K_RETURN] or keys[controls['keyboard']['action_a']]:
             self.dismiss()
             return True
 

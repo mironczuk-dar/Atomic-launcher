@@ -85,16 +85,16 @@ class BottomBar:
         keys = pygame.key.get_just_pressed()
         controlls = s.launcher.controlls_data
 
-        if keys[controlls['action_b']]:
+        if keys[controlls['keyboard']['action_b']]:
             s.close_bottombar()
 
-        if keys[controlls['up']]:
+        if keys[controlls['keyboard']['up']]:
             s.index = max(0, s.index - 1)
 
-        elif keys[controlls['down']]:
+        elif keys[controlls['keyboard']['down']]:
             s.index = min(len(s.options) - 1, s.index + 1)
 
-        elif keys[controlls['action_a']] or keys[pygame.K_RETURN]:
+        elif keys[controlls['keyboard']['action_a']] or keys[pygame.K_RETURN]:
             s.options[s.index]["callback"]()
             s.close_bottombar()
 

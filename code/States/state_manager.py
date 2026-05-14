@@ -23,7 +23,7 @@ class StateManager:
     def handling_events(s, events):
         keys = pygame.key.get_just_pressed()
 
-        if keys[s.launcher.controlls_data['options']]:
+        if keys[s.launcher.controlls_data['keyboard']['options']]:
             s.ui_focus = "sidebar" if s.ui_focus != "sidebar" else "content"
 
         if s.ui_focus == "sidebar":

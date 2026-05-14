@@ -49,16 +49,16 @@ class Sidebar:
         if not self.options:
             return
 
-        if keys[self.launcher.controlls_data['down']]:
+        if keys[self.launcher.controlls_data['keyboard']['down']]:
             self.index = (self.index + 1) % len(self.options)
 
-        elif keys[self.launcher.controlls_data['up']]:
+        elif keys[self.launcher.controlls_data['keyboard']['up']]:
             self.index = (self.index - 1) % len(self.options)
 
-        elif keys[self.launcher.controlls_data['right']]:
+        elif keys[self.launcher.controlls_data['keyboard']['right']]:
             self.launcher.state_manager.ui_focus = 'content'
 
-        elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['action_a']]:
+        elif keys[pygame.K_RETURN] or keys[self.launcher.controlls_data['keyboard']['action_a']]:
             self.launcher.state_manager.set_state(
                 self.options[self.index]
             )

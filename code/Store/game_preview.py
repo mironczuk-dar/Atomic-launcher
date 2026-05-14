@@ -127,28 +127,28 @@ class GamePreview(BaseState):
         controlls = s.launcher.controlls_data
         
         if s.is_fullscreen:
-            if keys[controlls['action_b']] or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
+            if keys[controlls['keyboard']['action_b']] or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
                 s.is_fullscreen = False
-            elif keys[controlls['left']]:
+            elif keys[controlls['keyboard']['left']]:
                 s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
-            elif keys[controlls['right']]:
+            elif keys[controlls['keyboard']['right']]:
                 s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
             return
 
-        if keys[controlls['up']]:
+        if keys[controlls['keyboard']['up']]:
             s.selection_index = (s.selection_index - 1) % len(s.actions)
-        elif keys[controlls['down']]:
+        elif keys[controlls['keyboard']['down']]:
             s.selection_index = (s.selection_index + 1) % len(s.actions)
         
-        if keys[controlls['left']]:
+        if keys[controlls['keyboard']['left']]:
             s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
-        elif keys[controlls['right']]:
+        elif keys[controlls['keyboard']['right']]:
             s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
 
-        if keys[pygame.K_RETURN] or keys[controlls['action_a']]:
+        if keys[pygame.K_RETURN] or keys[controlls['keyboard']['action_a']]:
             s.execute_action()
 
-        if keys[controlls['action_b']] or keys[pygame.K_ESCAPE]:
+        if keys[controlls['keyboard']['action_b']] or keys[pygame.K_ESCAPE]:
             s.launcher.state_manager.set_state('Store')
 
     def execute_action(s):

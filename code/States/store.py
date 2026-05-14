@@ -245,13 +245,13 @@ class Store(BaseState):
         state_manager = s.launcher.state_manager
         controlls = getattr(s.launcher, 'controlls_data', {})
         
-        action_confirm = keys[controlls.get('action_a', pygame.K_RETURN)] or keys[pygame.K_RETURN]
-        action_back = keys[controlls.get('action_b', pygame.K_ESCAPE)] or keys[pygame.K_ESCAPE]
+        action_confirm = keys[controlls['keyboard'].get('action_a', pygame.K_RETURN)] or keys[pygame.K_RETURN]
+        action_back = keys[controlls['keyboard'].get('action_b', pygame.K_ESCAPE)] or keys[pygame.K_ESCAPE]
         
-        btn_left = controlls.get('left', pygame.K_LEFT)
-        btn_right = controlls.get('right', pygame.K_RIGHT)
-        btn_up = controlls.get('up', pygame.K_UP)
-        btn_down = controlls.get('down', pygame.K_DOWN)
+        btn_left = controlls['keyboard'].get('left', pygame.K_LEFT)
+        btn_right = controlls['keyboard'].get('right', pygame.K_RIGHT)
+        btn_up = controlls['keyboard'].get('up', pygame.K_UP)
+        btn_down = controlls['keyboard'].get('down', pygame.K_DOWN)
 
         # Check if download panel is physically visible
         is_downloading_active = s.launcher.installer.is_downloading or s.launcher.installer.download_queue

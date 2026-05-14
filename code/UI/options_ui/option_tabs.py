@@ -424,7 +424,7 @@ class ControlsOptionsTab(GenericOptionsTab):
                     pygame.draw.rect(window, (255, 200, 0), rect, 4)
                 
                 # Tekst: Akcja i Klawisz
-                key_code = s.launcher.controlls_data[action_name]
+                key_code = s.launcher.controlls_data['keyboard'][action_name]
                 key_name = pygame.key.name(key_code).upper()
                 
                 label = action_name.replace('_', ' ').title()
@@ -436,7 +436,7 @@ class ControlsOptionsTab(GenericOptionsTab):
 
 
     def update_control(s, action_name, new_key):
-        s.launcher.controlls_data[action_name] = new_key
+        s.launcher.controlls_data['keyboard'][action_name] = new_key
         save_data(s.launcher.controlls_data, CONTROLLS_DATA_PATH)
 
 class PerformanceOptionsTab(GenericOptionsTab):

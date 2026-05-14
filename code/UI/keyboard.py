@@ -35,7 +35,7 @@ class Keyboard:
 
     #METHOD FOR HANDLING KEYBOARD INPUT
     def handling_events(s, events):
-        ctrl = s.game.controlls_data
+        ctrl = s.game.controlls_data['keyboard']
         
         for event in events:
             if event.type == pygame.KEYDOWN:

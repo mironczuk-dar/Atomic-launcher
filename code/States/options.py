@@ -66,7 +66,7 @@ class Options(BaseState):
 
     def handling_events(s, events):
         keys = pygame.key.get_just_pressed()
-        ctrl = s.launcher.controlls_data
+        ctrl = s.launcher.controlls_data['keyboard']
 
         # ---------- TOPBAR ----------
         if s.launcher.state_manager.ui_focus == 'topbar':

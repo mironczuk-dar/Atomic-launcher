@@ -74,7 +74,7 @@ class NavigationTutorial:
         title = self.title_font.render('Navigation Help', True, pygame.Color(theme['colour_3']))
         overlay.blit(title, (padding, padding))
 
-        controls = self.launcher.controlls_data
+        controls = self.launcher.controlls_data['keyboard']
         lines = [
             f"Move: {pygame.key.name(controls['up']).upper()}, {pygame.key.name(controls['down']).upper()}, {pygame.key.name(controls['left']).upper()}, {pygame.key.name(controls['right']).upper()}",
             f"Select: {pygame.key.name(controls['action_a']).upper()}",

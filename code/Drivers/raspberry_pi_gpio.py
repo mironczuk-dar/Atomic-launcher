@@ -49,11 +49,21 @@ class RaspberryPiGPIOController:
                 continue
 
             if is_pressed and not s.prev_states[action]:
-                pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {'key': key}))
+                # Add unicode and mod attributes to prevent UI crashes
+                pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {
+                    'key': key, 
+                    'unicode': '', 
+                    'mod': 0, 
+                    'scancode': 0
+                }))
                 s.prev_states[action] = True
 
             elif not is_pressed and s.prev_states[action]:
-                pygame.event.post(pygame.event.Event(pygame.KEYUP, {'key': key}))
+                pygame.event.post(pygame.event.Event(pygame.KEYUP, {
+                    'key': key, 
+                    'mod': 0, 
+                    'scancode': 0
+                }))
                 s.prev_states[action] = False
 
     def cleanup(s):

@@ -222,7 +222,7 @@ class Library(BaseState):
                 groups=s.icon_group,
                 game_id=game,
                 size=s.icon_w,
-                path=os.path.join(GAMES_DIR, game, 'assets', 'icon')
+                path=os.path.join(BASE_DIR, 'assets', 'store_assets', game, 'icon')
             )
         s.apply_search_filter(s.searchbar.text)
 
@@ -254,11 +254,13 @@ class Library(BaseState):
         if not os.path.exists(full_path): return
 
         try:
-            subprocess.Popen(
+            self.launcher.game_process = subprocess.Popen(
                 [sys.executable, full_path],
                 cwd=game_path,
                 creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
-            )
+            )            
+            self.launcher.game_running = True 
+            
         except Exception as e:
             print(f"Failed to start: {e}")
             return
@@ -267,5 +269,3 @@ class Library(BaseState):
         if perf_data.get('turn_off_launcher_when_game_active'):
             pygame.quit()
             sys.exit()
-        else:
-            self.fps = perf_data.get('decrease_launcher_fps_when_game_active', 30)

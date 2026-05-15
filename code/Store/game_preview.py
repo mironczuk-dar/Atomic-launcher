@@ -62,9 +62,13 @@ class GamePreview(BaseState):
             s.data['size'] = None
 
     def check_status(s):
-        """Checks if the game folder exists to determine installation status."""
+        """Checks the current install/download state for the preview."""
         manifest_version = s.data.get('version')
-        if not s.launcher.installer.is_installed(s.game_id):
+        if s.launcher.installer.is_downloading and s.launcher.installer.current_game_id == s.game_id:
+            s.status = GameStatus.DOWNLOADING
+        elif any(q[0] == s.game_id for q in s.launcher.installer.download_queue):
+            s.status = GameStatus.QUEUED
+        elif not s.launcher.installer.is_installed(s.game_id):
             s.status = GameStatus.NOT_INSTALLED
         elif s.launcher.installer.has_update(s.game_id, manifest_version):
             s.status = GameStatus.UPDATE_AVAILABLE
@@ -180,6 +184,8 @@ class GamePreview(BaseState):
         
         if action_label == "INSTALL" or action_label == "UPDATE":
             s.install_logic()
+        elif action_label == "CANCEL QUEUE":
+            s.cancel_queue()
         elif action_label == "LAUNCH GAME":
             s.launch_game()
         elif action_label == "UNINSTALL":
@@ -229,6 +235,11 @@ class GamePreview(BaseState):
         if not s.launcher.installer.is_downloading:
             s.launcher.installer.process_queue()
 
+    def cancel_queue(s):
+        s.launcher.installer.download_queue = [q for q in s.launcher.installer.download_queue if q[0] != s.game_id]
+        s.selection_index = 0
+        s.check_status()
+
     def draw_button(s, window, text, rect, theme, is_selected):
         is_danger = text == "UNINSTALL"
         
@@ -251,6 +262,7 @@ class GamePreview(BaseState):
 
     def draw(s, window):
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
+        s.check_status()
         window.fill(theme['colour_1']) # Primary Background
         
         x_start = s.launcher.sidebar.base_w + 40
@@ -267,12 +279,20 @@ class GamePreview(BaseState):
             s.actions = ["LAUNCH GAME", "VIEW GALLERY", "UNINSTALL", "BACK TO STORE"]
         elif s.status == GameStatus.UPDATE_AVAILABLE:
             s.actions = ["UPDATE", "LAUNCH GAME", "VIEW GALLERY", "UNINSTALL", "BACK TO STORE"]
+        elif s.status == GameStatus.QUEUED:
+            s.actions = ["CANCEL QUEUE", "VIEW GALLERY", "BACK TO STORE"]
         else:
             s.actions = ["INSTALL", "VIEW GALLERY", "BACK TO STORE"]
 
         if s.is_fullscreen:
             s._draw_fullscreen(window, theme, x_start)
             return
+
+        # Queued state indicator
+        if s.status == GameStatus.QUEUED:
+            queued_font = pygame.font.SysFont(None, 30, bold=True)
+            queued_surf = queued_font.render("QUEUED FOR DOWNLOAD", True, theme['colour_3'])
+            window.blit(queued_surf, (x_start, 130))
 
         # 1. HEADER
         # Title uses Primary Accent (colour_2) for hierarchy

@@ -5,7 +5,6 @@ from os import environ
 import platform
 import socket
 
-
 #IMPORTING FILES
 from settings import *
 from Tools.data_loading_tools import load_data, save_data
@@ -62,7 +61,6 @@ class Launcher:
         s.screen = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption('[ATOMIC LAUNCHER]')
         pygame.display.set_icon(pygame.image.load(join(BASE_DIR, 'assets', 'icon.png')))
-
 
         #INITALIZING CLOCK
         s.clock = pygame.time.Clock()
@@ -224,17 +222,21 @@ class Launcher:
     #METHOD FOR UPDATING THE LAUNCHER
     def update(s):
 
-        # LOWERING FPS IF THERE'S A GAME RUNNING
+        #CHECKING IF THE GAME IS STILL RUNNING
+        if s.game_running and s.game_process:
+            if s.game_process.poll() is not None:
+                s.game_running = False
+                s.game_process = None
+
         if s.game_running:
             s.delta_time = s.clock.tick(s.performance_settings_data['decrease_launcher_fps_when_game_active']) / 1000
         else:
-            if s.fps is None:
-                s.delta_time = s.clock.tick() / 1000
-            else:
-                s.delta_time = s.clock.tick(s.fps) / 1000
+            s.delta_time = s.clock.tick(s.fps) / 1000
+
+        print(f"FPS: {s.clock.get_fps():.2f}", end='\r')
 
 
-        # UPDATING CURRENT STATE
+        #UPDATING CURRENT STATE
         s.state_manager.update(s.delta_time)
 
     #METHOD FOR DRAWING THE LAUNCHER
@@ -279,6 +281,10 @@ if __name__ == '__main__':
         launcher = Launcher()
         print(launcher)
         launcher.run()
+
+    #CATCHING MANUAL TERMINATION (CTRL+C) FOR A CLEAN EXIT
+    except KeyboardInterrupt:
+        print("\nLauncher terminated manually.")
 
     #CATCHING ANY ERRORS SO THE USER CAN TROUBLESHOOT
     except Exception as e:

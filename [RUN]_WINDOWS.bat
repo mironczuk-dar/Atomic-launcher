@@ -41,7 +41,7 @@ for %%f in ("%EMBEDDED_DIR%\python*._pth") do (
 )
 
 REM =============================================
-REM ENSURE PIP EXISTS (STANDALONE WHEEL BOOTSTRAP)
+REM ENSURE PIP EXISTS (PRE-INSTALLED CHECK)
 REM =============================================
 
 echo Checking embedded pip...
@@ -49,42 +49,12 @@ echo Checking embedded pip...
 "%PYTHON%" -m pip --version >nul 2>nul
 
 if errorlevel 1 (
-    echo [INFO] Pip not found in embedded environment. Fetching standalone components...
-    
-    REM 1. Create a temporary site-packages folder if it doesn't exist
-    if not exist "%EMBEDDED_DIR%\Lib\site-packages" mkdir "%EMBEDDED_DIR%\Lib\site-packages"
-    
-    REM 2. Use Windows curl to bypass Python's missing socket extensions
-    curl -sL -o "%EMBEDDED_DIR%\pip.whl" "https://bootstrap.pypa.io/pip/pip.pyz"
-    
-    if exist "%EMBEDDED_DIR%\pip.whl" (
-        echo [INFO] Extracting pip architecture...
-        
-        REM Extract the package using built-in PowerShell zip tools
-        powershell -Command "Expand-Archive -Path '%EMBEDDED_DIR%\pip.whl' -DestinationPath '%EMBEDDED_DIR%\Lib\site-packages' -Force"
-        del "%EMBEDDED_DIR%\pip.whl"
-        
-        REM 3. Append site-packages path to Python's configuration map if not present
-        for %%f in ("%EMBEDDED_DIR%\python*._pth") do (
-            findstr /C:"Lib\site-packages" "%%f" >nul
-            if errorlevel 1 (
-                echo Lib\site-packages>>"%%f"
-            )
-        )
-        
-        REM Final check verification
-        "%PYTHON%" -m pip --version >nul 2>nul
-        if errorlevel 1 (
-            echo [ERROR] The environment extraction layout failed. Your zip package may be corrupted.
-            pause
-            exit /b 1
-        )
-        echo [SUCCESS] Standalone pip initialized successfully.
-    ) else (
-        echo [ERROR] Failed to fetch the standalone pip hub. Check your network adapter.
-        pause
-        exit /b 1
-    )
+    echo [ERROR] Embedded pip could not be loaded.
+    echo Please make sure 'Lib\site-packages' is added to your python314._pth file.
+    pause
+    exit /b 1
+) else (
+    echo [SUCCESS] Embedded pip detected!
 )
 
 REM =============================================

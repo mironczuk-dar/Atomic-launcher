@@ -16,3 +16,14 @@ ENV/
 # System files
 .DS_Store
 Thumbs.db
+
+# ===================================================
+# EXPLICIT PORTABLE PYTHON PROTECTION
+# ===================================================
+# Prevent Git from ignoring anything inside your custom runtime folder
+!windows_python/
+!windows_python/**
+
+# Ensure critical binaries are explicitly tracked
+!*.pyd
+!*.dll

@@ -1,20 +1,15 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableDelayedExpansion
-
-REM =============================================
-REM [RUN]_WINDOWS.bat
-REM Atomic Launcher - Embedded Python Runtime
-REM =============================================
 
 REM --- ROOT DIRECTORY ---
 cd /d "%~dp0"
-
-REM --- PATHS ---
 set "ROOT=%~dp0"
-set "CODE_DIR=%ROOT%src"
-set "EMBEDDED_DIR=%ROOT%windows_python_3.14.5"
 
-set "PYTHON=%EMBEDDED_DIR%\python.exe"
+REM --- FORCE ABSOLUTE PATHS TO BYPASS ACCENT/SPACE GLITCHES ---
+set "CODE_DIR=%ROOT%src"
+set "EMBEDDED_DIR=%ROOT%windows_python"
+set "PYTHON=%ROOT%windows_python\python.exe"
 
 REM --- PYTHON MODULE PATHS ---
 set "PYTHONPATH=%CODE_DIR%"
@@ -46,18 +41,19 @@ REM =============================================
 
 echo Checking embedded pip...
 
-REM Explicitly test pip by asking python to look inside site-packages natively
-"%PYTHON%" -c "import pip" >nul 2>nul
-
-if %ERRORLEVEL% NEQ 0 (
+"%PYTHON%" -c "import sys; import os; sys.path.insert(0, os.path.join(os.path.dirname(sys.executable), 'Lib', 'site-packages')); import pip; print(pip.__file__)" >nul 2>&1 || (
+    echo.
     echo [ERROR] Embedded pip could not be loaded via the script.
-    echo Script attempted to call: %PYTHON%
-    echo Please make sure your .bat file is saved with UTF-8 encoding.
+    echo Script attempted to execute: "%PYTHON%"
+    echo.
+    echo Please verify that the folder "windows_python" contains "python.exe" 
+    echo and that "Lib\site-packages\pip" actually exists inside it.
+    echo.
     pause
     exit /b 1
-) else (
-    echo [SUCCESS] Embedded pip detected!
 )
+
+echo [SUCCESS] Embedded pip detected!
 
 REM =============================================
 REM INTERNET CHECK
@@ -120,15 +116,11 @@ IF %ERRORLEVEL% EQU 0 (
     echo Updating Python packages...
 
     "%PYTHON%" -m pip install --upgrade pip --disable-pip-version-check
-
-    "%PYTHON%" -m pip install --upgrade ^
-        pygame-ce ^
-        pytmx ^
-        opencv-python ^
-        --disable-pip-version-check
+    
+    REM Install game engine packages cleanly into our working runtime
+    "%PYTHON%" -m pip install --upgrade pygame-ce pytmx opencv-python --disable-pip-version-check
 
 ) ELSE (
-
     echo No internet connection.
     echo Starting in offline mode.
 )

@@ -221,7 +221,7 @@ class Launcher:
 
     #METHOD FOR UPDATING THE LAUNCHER
     def update(s):
-
+        
         #CHECKING IF THE GAME IS STILL RUNNING
         if s.game_running and s.game_process:
             if s.game_process.poll() is not None:

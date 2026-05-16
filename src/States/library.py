@@ -23,7 +23,7 @@ class Library(BaseState):
         super().__init__(launcher)
 
         # LOADING IN GAMES MANIFEST
-        s.manifest_path = os.path.join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
+        s.manifest_path = os.path.join(BASE_DIR, 'src', 'Store', 'games_manifest.json')
         s.manifest = load_data(s.manifest_path, {})
 
         # LOGIC ATTRIBUTES

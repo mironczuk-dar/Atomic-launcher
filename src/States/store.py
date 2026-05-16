@@ -74,7 +74,7 @@ class Store(BaseState):
         s.info_font = pygame.font.SysFont(None, 24)
 
         # LOAD MANIFEST
-        s.manifest_path = join(BASE_DIR, 'code', 'Store', 'games_manifest.json')
+        s.manifest_path = join(BASE_DIR, 'src', 'Store', 'games_manifest.json')
         s.manifest = load_data(s.manifest_path, {})
         s.feature_frame_height = 520
         s.feature_frame = FeatureFrame(launcher, s.manifest)

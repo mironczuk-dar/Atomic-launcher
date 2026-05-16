@@ -13,7 +13,7 @@ class FeatureFrame:
     def __init__(s, launcher, manifest):
         s.launcher = launcher
         s.manifest = manifest
-        s.feature_data_path = join(BASE_DIR, 'code', 'Store', 'featured_games.json')
+        s.feature_data_path = join(BASE_DIR, 'src', 'Store', 'featured_games.json')
         s.featured_games = s._load_featured_games()
         s.current_index = 0
         s.slide_interval = 6.0

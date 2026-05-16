@@ -10,6 +10,9 @@ import stat
 from os import listdir
 from os.path import join, isdir, isfile
 
+# --- NEW IMPORT ---
+import cv2  # Used for decoding video files frame-by-frame
+
 from States.generic_state import BaseState
 from settings import WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY, BASE_DIR, GAMES_DIR, get_contrast_text_color
 from UI.store_ui.store_entry import GameStatus
@@ -26,6 +29,14 @@ class GamePreview(BaseState):
         s.data = {}
         s.screenshots = []
         s.fullscreen_screenshots = []
+        
+        # --- NEW VIDEO TRACKING VARIABLES ---
+        s.video_capture = None
+        s.video_index = -1       # Tracks which slot index holds our video element
+        s.video_fps = 30         # Default target fallback framerate
+        s.next_frame_time = 0    # Timer stamp for tracking when to draw the next frame
+        # ------------------------------------
+
         s.status = GameStatus.NOT_INSTALLED
         s.progress_bar = Bar(0, 0, 300, 20) 
         
@@ -43,8 +54,13 @@ class GamePreview(BaseState):
         s.current_img_index = 0
         s.is_fullscreen = False
         s.selection_index = 0
+        
+        # Free up any open video resources from previous previews
+        s.close_video()
+
         s.check_status()
         s.load_screenshots()
+        
         s.title_font_path = s._get_custom_font_path('title')
         s.author_font_path = s._get_custom_font_path('author')
         s.description_font_path = s._get_custom_font_path('description')
@@ -54,7 +70,6 @@ class GamePreview(BaseState):
     def fetch_size(s):
         try:
             repo_url = s.data['repo']
-            # Extract owner/repo from https://github.com/owner/repo.git
             parts = repo_url.replace('https://github.com/', '').replace('.git', '').split('/')
             owner, repo = parts[0], parts[1]
             api_url = f"https://api.github.com/repos/{owner}/{repo}"
@@ -68,7 +83,6 @@ class GamePreview(BaseState):
             s.data['size'] = None
 
     def check_status(s):
-        """Checks the current install/download state for the preview."""
         manifest_version = s.data.get('version')
         if s.launcher.installer.is_downloading and s.launcher.installer.current_game_id == s.game_id:
             s.status = GameStatus.DOWNLOADING
@@ -81,23 +95,47 @@ class GamePreview(BaseState):
         else:
             s.status = GameStatus.INSTALLED
 
+    def close_video(s):
+        """Safely stops and releases video hooks."""
+        if s.video_capture is not None:
+            s.video_capture.release()
+            s.video_capture = None
+        s.video_index = -1
+
     def load_screenshots(s):
         s.screenshots.clear()
         s.fullscreen_screenshots.clear()
+        s.close_video()
+        
         path = join(BASE_DIR, 'assets', 'store_assets', s.game_id, 'screenshots')
         
-        # Calculate responsive dimensions
-        # Sidebar is 10% of window width
         sidebar_w = int(WINDOW_WIDTH * 0.1)
-        available_w = WINDOW_WIDTH - sidebar_w - 80  # 40px margins on each side
+        available_w = WINDOW_WIDTH - sidebar_w - 80 
         
-        # Screenshot panel takes 70% of available width, maintains 16:9 aspect ratio
         prev_w = int(available_w * 0.7)
         prev_h = int(prev_w * 9 / 16)
         
         fs_w = WINDOW_WIDTH - 100
         fs_h = WINDOW_HEIGHT - 150
 
+        # --- NEW: LOOK FOR PREVIEW VIDEOS FIRST ---
+        # Checks if 'preview.mp4' exists alongside images
+        video_path = join(path, "preview.mp4")
+        if isfile(video_path):
+            s.video_capture = cv2.VideoCapture(video_path)
+            if s.video_capture.isOpened():
+                s.video_fps = s.video_capture.get(cv2.CAP_PROP_FPS)
+                if s.video_fps <= 0: 
+                    s.video_fps = 30
+                
+                # Append a placeholder item into lists. 
+                # Our draw loop catches this index and transforms it to active frame pixels.
+                s.screenshots.append("VIDEO_SLOT")
+                s.fullscreen_screenshots.append("VIDEO_SLOT")
+                s.video_index = 0 # Placed first in the carousel slider index
+                s.next_frame_time = pygame.time.get_ticks()
+
+        # Load traditional imagery formats
         if isdir(path):
             files = [f for f in sorted(listdir(path)) if f.endswith(('.png', '.jpg', '.jpeg'))]
             for file in files:
@@ -113,6 +151,46 @@ class GamePreview(BaseState):
             placeholder.fill((30, 30, 30))
             s.screenshots.append(placeholder)
             s.fullscreen_screenshots.append(s._scale_image(placeholder, fs_w, fs_h))
+
+    def get_video_frame(s, target_w, target_h):
+        """Fetches, converts, scales, and manages video playback loops."""
+        if s.video_capture is None:
+            # Fallback black surface if stream fails
+            surf = pygame.Surface((target_w, target_h))
+            surf.fill((0, 0, 0))
+            return surf
+
+        now = pygame.time.get_ticks()
+        # Timing engine checking if it's interval window update point yet
+        if now >= s.next_frame_time:
+            # Advance frame
+            success, frame = s.video_capture.read()
+            if not success:
+                # Video ended: Rewind stream back to zero index position to loop it infinitely
+                s.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                success, frame = s.video_capture.read()
+
+            if success:
+                # OpenCV handles images in BGR format, Pygame demands RGB alignment arrays
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Rotate layout axis array coordinates to conform to Pygame format constraints
+                frame = cv2.transpose(frame)
+                
+                # Turn multi-dimensional numpy array matrix into blittable Native Image Surface
+                img_surf = pygame.surfarray.make_surface(frame)
+                s.last_valid_frame = s._scale_image(img_surf, target_w, target_h)
+            
+            # Increment next scheduled rendering step based on file target configurations
+            s.next_frame_time = now + int(1000 / s.video_fps)
+
+        # Return latest processed surface frame buffer chunk
+        if hasattr(s, 'last_valid_frame'):
+            return s.last_valid_frame
+        
+        # Temporary black screen if data parsing hasn't fully booted up on first tick
+        blank = pygame.Surface((target_w, target_h))
+        blank.fill((0,0,0))
+        return blank
 
     def _get_custom_font_path(s, font_type):
         font_dir = join(BASE_DIR, 'assets', 'store_assets', s.game_id, 'fonts')
@@ -160,15 +238,12 @@ class GamePreview(BaseState):
         return surface
 
     def handling_events(s, events):
-        # 1. Get the control map once before the loop
         ctrl = s.launcher.controlls_data['keyboard']
         
-        # 2. Iterate through ALL events to prevent dropping injected GPIO events
         for event in events:
             if event.type == pygame.KEYDOWN:
                 current_key = event.key
                 
-                # 3. Map keys to logical actions
                 is_up = current_key == ctrl['up']
                 is_down = current_key == ctrl['down']
                 is_left = current_key == ctrl['left']
@@ -178,38 +253,27 @@ class GamePreview(BaseState):
 
                 # --- FULLSCREEN MODE LOGIC ---
                 if s.is_fullscreen:
-                    # Exit fullscreen with Back, Escape, or Space
                     if is_back or current_key == pygame.K_SPACE:
                         s.is_fullscreen = False
-                    # Navigate screenshots while in fullscreen
                     elif is_left:
                         s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
                     elif is_right:
                         s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
-                    
-                    # Continue to the next event, bypassing standard preview logic
                     continue
 
                 # --- STANDARD PREVIEW LOGIC ---
-                
-                # Vertical navigation (Actions list like "Play", "Uninstall", etc.)
                 if is_up:
                     s.selection_index = (s.selection_index - 1) % len(s.actions)
                 elif is_down:
                     s.selection_index = (s.selection_index + 1) % len(s.actions)
-                
-                # Horizontal navigation (Screenshot gallery)
                 elif is_left:
                     s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
                 elif is_right:
                     s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
-
-                # Execution (Confirm action)
                 elif is_confirm:
                     s.execute_action()
-
-                # Back to Store/Library
                 elif is_back:
+                    s.close_video() # Free resources when closing state
                     s.launcher.state_manager.set_state('Store')
 
     def execute_action(s):
@@ -220,12 +284,14 @@ class GamePreview(BaseState):
         elif action_label == "CANCEL QUEUE":
             s.cancel_queue()
         elif action_label == "LAUNCH GAME":
+            s.close_video() # Shut down video handles before running subprocess forks
             s.launch_game()
         elif action_label == "UNINSTALL":
             s.uninstall_game()
         elif action_label == "VIEW GALLERY":
             s.is_fullscreen = True
         elif action_label == "BACK TO STORE":
+            s.close_video()
             s.launcher.state_manager.set_state('Store')
 
     def launch_game(s):
@@ -261,7 +327,6 @@ class GamePreview(BaseState):
                 print(f"Uninstall failed: {e}")
 
     def install_logic(s):
-        # Check if already in queue or downloading
         if any(q[0] == s.game_id for q in s.launcher.installer.download_queue) or s.launcher.installer.is_downloading and s.launcher.installer.current_game_id == s.game_id:
             return
         s.launcher.installer.download_queue.append((s.game_id, s.data["repo"], s.data.get("version")))
@@ -275,18 +340,14 @@ class GamePreview(BaseState):
 
     def draw_button(s, window, text, rect, theme, is_selected):
         is_danger = text == "UNINSTALL"
-        
         if is_selected:
-            # Selected buttons pop with the Primary Accent (colour_2)
             bg_color = (200, 50, 50) if is_danger else theme['colour_2']
             txt_color = get_contrast_text_color(bg_color)
         else:
-            # Inactive buttons blend with the Panel Background (colour_4)
             bg_color = theme['colour_4']
             txt_color = get_contrast_text_color(bg_color)
         
         pygame.draw.rect(window, bg_color, rect, border_radius=10)
-        # Border uses Secondary Accent (colour_3) for subtle definition
         pygame.draw.rect(window, theme['colour_3'], rect, 2, border_radius=10)
             
         font = pygame.font.SysFont(None, 28, bold=is_selected)
@@ -296,18 +357,16 @@ class GamePreview(BaseState):
     def draw(s, window):
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]
         s.check_status()
-        window.fill(theme['colour_1']) # Primary Background
+        window.fill(theme['colour_1'])
         
         x_start = s.launcher.sidebar.base_w + 40
         is_busy = s.launcher.installer.is_downloading and s.launcher.installer.current_game_id == s.game_id
         
-        # Calculate responsive dimensions
         sidebar_w = int(WINDOW_WIDTH * 0.1)
-        available_w = WINDOW_WIDTH - sidebar_w - 80  # 40px margins on each side
+        available_w = WINDOW_WIDTH - sidebar_w - 80  
         screenshot_w = int(available_w * 0.7)
         screenshot_h = int(screenshot_w * 9 / 16)
         
-        # Dynamic Menu Logic
         if s.status == GameStatus.INSTALLED:
             s.actions = ["LAUNCH GAME", "VIEW GALLERY", "UNINSTALL", "BACK TO STORE"]
         elif s.status == GameStatus.UPDATE_AVAILABLE:
@@ -321,34 +380,35 @@ class GamePreview(BaseState):
             s._draw_fullscreen(window, theme, x_start)
             return
 
-        # Queued state indicator
         if s.status == GameStatus.QUEUED:
             queued_font = pygame.font.SysFont(None, 30, bold=True)
             queued_surf = queued_font.render("QUEUED FOR DOWNLOAD", True, theme['colour_3'])
             window.blit(queued_surf, (x_start, 130))
 
-        # 1. HEADER
-        # Title uses Primary Accent (colour_2) for hierarchy
         title_font = s._load_font(s.title_font_path, 70, bold=True)
         title_surf = title_font.render(s.data.get('name', 'Game'), True, theme['colour_2'])
         window.blit(title_surf, (x_start, 30))
         
-        # Meta Info uses Secondary Accent (colour_3)
         meta_font = s._load_font(s.author_font_path, 32, bold=True)
         meta_text = f"AUTHOR: {s.data.get('author')}"
         meta_surf = meta_font.render(meta_text, True, theme['colour_3'])
         window.blit(meta_surf, (x_start, 90))
 
-        # 2. SCREENSHOT PANEL
+        # --- REVISED SCREENSHOT/VIDEO RENDERING ---
         panel_y = 140
-        # Screenshot area uses the Secondary Background (colour_4)
         pygame.draw.rect(window, theme['colour_4'], (x_start, panel_y, screenshot_w, screenshot_h), border_radius=14)
-        window.blit(s.screenshots[s.current_img_index], (x_start, panel_y))
+        
+        # Check if the active index points to our video slot
+        if s.current_img_index == s.video_index:
+            current_surface = s.get_video_frame(screenshot_w, screenshot_h)
+        else:
+            current_surface = s.screenshots[s.current_img_index]
+            
+        window.blit(current_surface, (x_start, panel_y))
         
         # Navigation Dots
         dot_x = x_start + screenshot_w // 2 - (len(s.screenshots) * 15) // 2
         for i in range(len(s.screenshots)):
-            # Active indicator uses Accent 2, Inactive uses Accent 3
             color = theme['colour_2'] if i == s.current_img_index else theme['colour_3']
             pygame.draw.circle(window, color, (dot_x + i * 20, panel_y + screenshot_h + 17), 4)
 
@@ -374,8 +434,7 @@ class GamePreview(BaseState):
 
         # 4. DESCRIPTION
         desc_font = s._load_font(s.description_font_path, 44)
-        desc_rect = pygame.Rect(x_start, panel_y + screenshot_h + 60, screenshot_w, 100)
-        # Description text uses high-contrast colour_4 or standard white
+        desc_rect = pygame.Rect(x_start, panel_y + screenshot_h + 60, WINDOW_WIDTH - s.launcher.sidebar.base_w - 50, 100)
         s.draw_wrapped_text(window, s.data.get('description', ''), desc_font, (240, 240, 240), desc_rect)
 
         # 5. PROGRESS BAR
@@ -389,7 +448,16 @@ class GamePreview(BaseState):
         overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 240))
         window.blit(overlay, (0, 0))
-        fs_img = s.fullscreen_screenshots[s.current_img_index]
+        
+        fs_w = WINDOW_WIDTH - 100
+        fs_h = WINDOW_HEIGHT - 150
+        
+        # Handle video rendering inside fullscreen mode too
+        if s.current_img_index == s.video_index:
+            fs_img = s.get_video_frame(fs_w, fs_h)
+        else:
+            fs_img = s.fullscreen_screenshots[s.current_img_index]
+            
         img_rect = fs_img.get_rect(center=((WINDOW_WIDTH + x_offset)//2, WINDOW_HEIGHT // 2))
         window.blit(fs_img, img_rect)
 

@@ -4,3 +4,4 @@ gpiozero
 RPi.GPIO
 pigpio
 lgpio
+opencv-python

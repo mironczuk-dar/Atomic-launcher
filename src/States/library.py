@@ -8,10 +8,10 @@ import sys
 # IMPORTING FILES
 from States.generic_state import BaseState
 from settings import GAMES_DIR, BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY
-from UI.searchbar import SearchBar
-from UI.game_icon import GameIcon
+from UI.ui_elements.searchbar import SearchBar
+from UI.ui_elements.game_icon import GameIcon
 from UI.library_ui.bottombar import BottomBar
-from UI.buttons import GenericToggleButton, ImageToggleButton
+from UI.ui_elements.buttons import GenericToggleButton, ImageToggleButton
 from UI.library_ui.navigation_tutorial import NavigationTutorial
 
 # IMPORTING TOOLS

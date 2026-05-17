@@ -9,6 +9,61 @@ from settings import WINDOW_WIDTH
 from settings import THEME_LIBRARY, WINDOW_WIDTH
 from UI.options_ui.generic_options_tab import GenericOptionsTab
 
+class AudioSettings(OptionsSection):
+
+    def __init__(s, game):
+
+        super().__init__(game)
+        s.setup()
+
+
+    def setup(s):
+
+        slider_size = (800, 40)
+        music_slider = Slider(
+            s.game,
+            pos=(WINDOW_WIDTH/2-slider_size[0]/2, WINDOW_HEIGHT/3),
+            size=slider_size,
+            min_val=0,
+            max_val=1,
+            start_val=s.game.audio_data.get("music_volume", 1.0),
+            on_change=lambda v: s.game.audio_manager.set_music_volume(v)
+        )
+
+        sound_slider = Slider(
+            s.game,
+            pos=(WINDOW_WIDTH/2-slider_size[0]/2, WINDOW_HEIGHT/3*2),
+            size=(slider_size),
+            min_val=0,
+            max_val=1,
+            start_val=s.game.audio_data.get("sound_volume", 1.0),
+            on_change=lambda v: s.game.audio_manager.set_sound_volume(v)
+        )
+
+        music_toggle = GenericToggleButton(
+            s.game,
+            size=(220, 50),
+            pos=(WINDOW_WIDTH/2, WINDOW_HEIGHT/3+slider_size[1]+50),
+            text="Music",
+            action=s.game.audio_manager.toggle_music
+        )
+
+        sound_toggle = GenericToggleButton(
+            s.game,
+            size=(220, 50),
+            pos=(WINDOW_WIDTH/2, WINDOW_HEIGHT/3*2+slider_size[1]+50),
+            text="Sound",
+            action=s.game.audio_manager.toggle_sound
+        )
+
+        s.ui_elements.extend([
+            music_slider,
+            music_toggle,
+            sound_slider,
+            sound_toggle
+        ])
+
+
 class AudioOptionsTab(GenericOptionsTab):
 
     def __init__(s, launcher):

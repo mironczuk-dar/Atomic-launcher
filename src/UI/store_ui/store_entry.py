@@ -3,7 +3,7 @@ from enum import Enum, auto
 from os.path import join
 
 from settings import THEME_LIBRARY, BASE_DIR
-from UI.game_icon import GameIcon
+from UI.ui_elements.game_icon import GameIcon
 
 
 class GameStatus(Enum):

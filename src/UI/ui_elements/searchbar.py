@@ -5,7 +5,7 @@ import pygame
 from settings import WINDOW_WIDTH, THEME_LIBRARY, WINDOW_HEIGHT, get_contrast_text_color
 
 #IMPORTING UI ELEMENTS
-from UI.keyboard import Keyboard
+from UI.ui_elements.keyboard import Keyboard
 
 class SearchBar:
     def __init__(self, launcher, on_change, width=int(WINDOW_WIDTH * 0.3), height=int(WINDOW_HEIGHT * 0.1), x=None, y=None):

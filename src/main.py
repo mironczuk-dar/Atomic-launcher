@@ -14,7 +14,7 @@ from Tools.data_loading_tools import load_data, save_data
 from Machines.game_installing_machine import GameInstaller
 from Managers.audio_manager import AudioManager
 from Managers.state_manager import StateManager
-from UI.sidebar import Sidebar
+from UI.ui_elements.sidebar import Sidebar
 from States.library import Library
 from States.store import Store
 from States.options import Options

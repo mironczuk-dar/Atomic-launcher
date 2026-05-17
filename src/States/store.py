@@ -5,9 +5,9 @@ import math
 from settings import BASE_DIR, WINDOW_WIDTH, WINDOW_HEIGHT, THEME_LIBRARY, get_contrast_text_color
 from UI.store_ui.store_entry import StoreEntry, GameStatus
 from UI.store_ui.feature_frame import FeatureFrame
-from UI.searchbar import SearchBar
+from UI.ui_elements.searchbar import SearchBar
 from UI.store_ui.progress_bar import Bar
-from UI.buttons import GenericToggleButton, ImageToggleButton
+from UI.ui_elements.buttons import GenericToggleButton, ImageToggleButton
 from States.generic_state import BaseState
 from Tools.data_loading_tools import load_data
 from Tools.asset_importing_tool import import_image

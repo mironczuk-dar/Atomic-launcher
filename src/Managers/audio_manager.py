@@ -18,6 +18,7 @@ class AudioManager:
 
         # ----- MUSIC EFFECTS -----
         s.current_track = None
+        s.last_track = None  # Caches the track to seamlessly restore it
         s.music_on = s.game.audio_data.get('music_on', True)
         s.music_volume = s.game.audio_data.get('music_volume', 1.0)
 
@@ -26,16 +27,10 @@ class AudioManager:
         s.sound_on = s.game.audio_data.get('sound_on', True)
         s.sound_volume = s.game.audio_data.get('sound_volume', 1.0)
 
-        # ----- SOUND PREVIEW COOLDOWN -----
-        s.last_preview_time = 0
-        s.preview_interval = 1.0  #SECONDS
-
-        # ----- SOUND PREVIEW COOLDOWN -----
-        s.preview_sound_timer = Timer(800, repeat = False)
-
     
     def update(s, delta_time):
-        s.preview_sound_timer.update()
+        # The preview cooldown timer is now safely handled natively inside AudioOptionsTab
+        pass
 
 
     # ----- MUSIC METHODS -----
@@ -84,9 +79,14 @@ class AudioManager:
         s.game.audio_data['music_on'] = s.music_on
         save_data(s.game.audio_data, AUDIO_DATA_PATH)
         if not s.music_on:
+            s.last_track = s.current_track # Save track before clearing it
             s.stop_music()
         else:
-            s.play_for_state(s.game.state_manager.active_state)
+            # Safely resume the last cached track
+            if hasattr(s, 'last_track') and s.last_track:
+                s.play_music(s.last_track)
+            elif hasattr(s.game, 'state_manager') and hasattr(s.game.state_manager, 'active_state'):
+                s.play_for_state(s.game.state_manager.active_state)
 
     # ----- SOUND EFFECT METHODS -----
     def play_sound(s, sound):
@@ -106,10 +106,9 @@ class AudioManager:
         s.game.audio_data['sound_volume'] = volume
         save_data(s.game.audio_data, AUDIO_DATA_PATH)
 
-        # Play preview sound only if the timer is inactive
-        if not s.preview_sound_timer.active:
-            s.play_sound(s.test_sound)
-            s.preview_sound_timer.activate()
+    def play_sound_preview(s):
+        # This gets fired dynamically by AudioOptionsTab depending on UI cooldown logic
+        s.play_sound(s.test_sound)
 
     def toggle_sound(s):
         s.sound_on = not s.sound_on

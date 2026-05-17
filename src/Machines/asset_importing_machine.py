@@ -15,6 +15,7 @@ def load_audio(game):
 
     game.music_tracks = {
         'Menu music' : join(BASE_DIR, 'audio', 'Music', 'menu_music.ogg'),
+        'Options music' : join(BASE_DIR, 'audio', 'Music', 'options_music.ogg'),
     }
 
     game.select_sound = pygame.mixer.Sound(join(BASE_DIR, 'audio', 'Sounds', 'select_sound.wav'))

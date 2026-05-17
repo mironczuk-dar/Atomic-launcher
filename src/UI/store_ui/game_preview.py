@@ -153,43 +153,55 @@ class GamePreview(BaseState):
             s.fullscreen_screenshots.append(s._scale_image(placeholder, fs_w, fs_h))
 
     def get_video_frame(s, target_w, target_h):
-        """Fetches, converts, scales, and manages video playback loops."""
-        if s.video_capture is None:
-            # Fallback black surface if stream fails
-            surf = pygame.Surface((target_w, target_h))
-            surf.fill((0, 0, 0))
-            return surf
+        """Fetches, converts, scales, and manages video playback loops with auto-recovery."""
+        # 1. AUTO-RECOVER: If video handle is dead but the game has closed, restore the stream
+        if s.video_capture is None and not getattr(s.launcher, 'game_running', False):
+            path = join(BASE_DIR, 'assets', 'store_assets', s.game_id, 'screenshots')
+            video_path = join(path, "preview.mp4")
+            if isfile(video_path):
+                s.video_capture = cv2.VideoCapture(video_path)
+                if s.video_capture.isOpened():
+                    s.video_fps = s.video_capture.get(cv2.CAP_PROP_FPS)
+                    if s.video_fps <= 0: 
+                        s.video_fps = 30
+                    s.video_index = 0
+                    s.next_frame_time = pygame.time.get_ticks()
 
+        # 2. SMART FALLBACK: If the game is running (or video loading failed), show a screenshot
+        if s.video_capture is None:
+            source_list = s.fullscreen_screenshots if s.is_fullscreen else s.screenshots
+            for item in source_list:
+                if isinstance(item, pygame.Surface):
+                    return item
+            
+            # Absolute baseline if no screenshots exist anywhere
+            blank = pygame.Surface((target_w, target_h))
+            blank.fill((30, 30, 30))
+            return blank
+
+        # 3. STANDARD VIDEO STREAMING ENGINE
         now = pygame.time.get_ticks()
-        # Timing engine checking if it's interval window update point yet
         if now >= s.next_frame_time:
-            # Advance frame
             success, frame = s.video_capture.read()
             if not success:
-                # Video ended: Rewind stream back to zero index position to loop it infinitely
+                # Loop back to frame 0
                 s.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 success, frame = s.video_capture.read()
 
             if success:
-                # OpenCV handles images in BGR format, Pygame demands RGB alignment arrays
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                # Rotate layout axis array coordinates to conform to Pygame format constraints
                 frame = cv2.transpose(frame)
-                
-                # Turn multi-dimensional numpy array matrix into blittable Native Image Surface
                 img_surf = pygame.surfarray.make_surface(frame)
                 s.last_valid_frame = s._scale_image(img_surf, target_w, target_h)
             
-            # Increment next scheduled rendering step based on file target configurations
             s.next_frame_time = now + int(1000 / s.video_fps)
 
-        # Return latest processed surface frame buffer chunk
         if hasattr(s, 'last_valid_frame'):
             return s.last_valid_frame
         
-        # Temporary black screen if data parsing hasn't fully booted up on first tick
+        # Initial boot frame buffer fallback
         blank = pygame.Surface((target_w, target_h))
-        blank.fill((0,0,0))
+        blank.fill((0, 0, 0))
         return blank
 
     def _get_custom_font_path(s, font_type):
@@ -295,26 +307,38 @@ class GamePreview(BaseState):
             s.launcher.state_manager.set_state('Store')
 
     def launch_game(s):
-        game_path = join(GAMES_DIR, s.game_id, 'code')
+        if not s.game_id: return
+        
+        # In GamePreview, the folder name is simply s.game_id
+        game_path = os.path.join(GAMES_DIR, s.game_id, 'code')
+        
+        # Get the main file path directly from the loaded game data
         main_file = s.data.get("main.py", "main.py") 
-        full_path = join(game_path, main_file)
+        full_path = os.path.join(game_path, main_file)
 
-        if not os.path.exists(full_path):
+        if not os.path.exists(full_path): 
+            print(f"Error: Executable not found at {full_path}")
             return
 
         try:
-            subprocess.Popen(
+            s.launcher.game_process = subprocess.Popen(
                 [sys.executable, full_path],
                 cwd=game_path,
                 creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
-            )
+            )            
+            s.launcher.game_running = True 
             
-            perf = s.launcher.performance_settings_data
-            if perf.get('turn_off_launcher_when_game_active'):
-                pygame.quit()
-                sys.exit()
+            # --- Pause the launcher music ---
+            s.launcher.audio_manager.pause_music()
+            
         except Exception as e:
-            print(f"Failed to launch: {e}")
+            print(f"Failed to start: {e}")
+            return
+
+        perf_data = s.launcher.performance_settings_data
+        if perf_data.get('turn_off_launcher_when_game_active'):
+            pygame.quit()
+            sys.exit()
 
     def uninstall_game(s):
         target_dir = join(GAMES_DIR, s.game_id)
@@ -399,11 +423,10 @@ class GamePreview(BaseState):
         panel_y = 140
         pygame.draw.rect(window, theme['colour_4'], (x_start, panel_y, screenshot_w, screenshot_h), border_radius=14)
         
-        # Check if the active index points to our video slot
-        if s.current_img_index == s.video_index:
+        # FIX: Directly check if the current surface item is the video string placeholder
+        current_surface = s.screenshots[s.current_img_index]
+        if current_surface == "VIDEO_SLOT":
             current_surface = s.get_video_frame(screenshot_w, screenshot_h)
-        else:
-            current_surface = s.screenshots[s.current_img_index]
             
         window.blit(current_surface, (x_start, panel_y))
         
@@ -453,11 +476,10 @@ class GamePreview(BaseState):
         fs_w = WINDOW_WIDTH - 100
         fs_h = WINDOW_HEIGHT - 150
         
-        # Handle video rendering inside fullscreen mode too
-        if s.current_img_index == s.video_index:
+        # FIX: Check explicitly for the string identifier instead of tracking index matches
+        fs_img = s.fullscreen_screenshots[s.current_img_index]
+        if fs_img == "VIDEO_SLOT":
             fs_img = s.get_video_frame(fs_w, fs_h)
-        else:
-            fs_img = s.fullscreen_screenshots[s.current_img_index]
             
         img_rect = fs_img.get_rect(center=((WINDOW_WIDTH + x_offset)//2, WINDOW_HEIGHT // 2))
         window.blit(fs_img, img_rect)

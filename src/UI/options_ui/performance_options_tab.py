@@ -2,13 +2,10 @@
 import pygame
 
 #IMPORTING FILES
-from settings import BASE_DIR, get_contrast_text_color
-from UI.options_ui.FPS_preview_ball import Ball
+from settings import get_contrast_text_color
 from Tools.data_loading_tools import save_data
-from Tools.asset_importing_tool import import_image
-from settings import CONTROLLS_DATA_PATH
-from settings import THEME_LIBRARY, THEMES_DATA_PATH
-from settings import WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_DATA_PATH
+from settings import THEME_LIBRARY
+from settings import WINDOW_WIDTH
 from settings import PERFORMANCE_SETTINGS_DATA_PATH, THEME_LIBRARY, WINDOW_WIDTH
 from UI.options_ui.generic_options_tab import GenericOptionsTab
 

@@ -288,14 +288,16 @@ class Library(BaseState):
     def handling_events(s, events):
         controlls = s.launcher.controlls_data
         
-        # --- NEW EVENT-BASED LOGIC ---
+        # 1. INPUT BARRIER: If the tutorial is active, it handles inputs exclusively
+        # and completely blocks the background library from moving or reacting.
+        if s.navigation_tutorial.is_active():
+            s.navigation_tutorial.handle_input(events)
+            return
+
+        # --- CORE LIBRARY LOGIC (Only runs when tutorial is gone) ---
         for event in events:
             if event.type == pygame.KEYDOWN:
                 key = event.key
-
-                if s.navigation_tutorial.is_active():
-                    if s.navigation_tutorial.handle_input(events):
-                        return
 
                 if s.searchbar.active:
                     s.searchbar.handle_events(events)

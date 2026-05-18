@@ -493,7 +493,6 @@ class Library(BaseState):
             return game_data["name"]
         return folder_name.replace("_", " ").title()
 
-
     def get_game_library(s):
         s.manifest = load_data(s.manifest_path, {})
         if not os.path.exists(GAMES_DIR):

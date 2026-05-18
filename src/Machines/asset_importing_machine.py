@@ -19,6 +19,7 @@ def load_audio(game):
     }
 
     game.select_sound = pygame.mixer.Sound(join(BASE_DIR, 'audio', 'Sounds', 'select_sound.wav'))
+    game.switch_sound = pygame.mixer.Sound(join(BASE_DIR, 'audio', 'Sounds', 'switch_sound.wav'))
 
 
 #LOADING GAME MAPS

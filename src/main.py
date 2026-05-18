@@ -42,7 +42,7 @@ class Launcher:
         '''
     
     #CONSTRUCTOR
-    def __init__(s):
+    def __init__(s):    
 
         #CHECKING THE SYSTEM THE DEVICE IS RUNNING ON
         s.system = s.checking_operating_system()

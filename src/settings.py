@@ -89,7 +89,7 @@ DEFAULT_PERFORMANCE_SETTINGS_DATA = {
 #THEMES DATA
 THEMES_DATA_PATH = join(BASE_DIR, 'data', 'themes_data.json')
 DEFAULT_THEME_DATA = {
-    'current_theme' : 'Aurora'
+    'current_theme' : 'Slate Bloom'
 }
 THEME_LIBRARY = {
     'Aurora' : {'colour_1' : "#0F1B3C",

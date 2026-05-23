@@ -8,13 +8,6 @@ from typing import Optional
 import threading
 
 class GameInstaller:
-    """
-    GameInstaller
-    ----------------
-    - Git służy WYŁĄCZNIE do pobierania plików
-    - Manifest jest jedynym źródłem prawdy o wersji
-    - version.json jest synchronizowany po install/update
-    """
 
     def __init__(self, games_dir: str):
         self.games_dir = Path(games_dir)
@@ -28,6 +21,37 @@ class GameInstaller:
     def remove_readonly(self, func, path, excinfo):
         os.chmod(path, stat.S_IWRITE)
         func(path)
+
+    def _get_git_executable(self) -> str:
+        """
+        Zwraca pełną ścieżkę do pliku wykonywalnego git lub 'git', 
+        jeśli uda się go znaleźć tylko w PATH.
+        """
+        # Znajdź główny folder projektu (Atomic-launcher)
+        # Przechodzimy w górę: Machines -> src (lub code) -> Atomic-launcher
+        root_dir = Path(__file__).resolve().parent.parent.parent
+        portable_git_path = root_dir / "PortableGit" / "cmd" / "git.exe"
+
+        # 1. Najpierw sprawdzamy naszą przenośną wersję
+        if portable_git_path.exists():
+            return str(portable_git_path)
+
+        # 2. Sprawdzamy systemowy PATH
+        git_path = shutil.which("git")
+        if git_path:
+            return git_path
+        
+        # 3. Awaryjne ścieżki dla systemu Windows
+        possible_paths = [
+            r"C:\Program Files\Git\bin\git.exe",
+            r"C:\Program Files\Git\cmd\git.exe"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+                
+        # Ostateczny fallback - próbujemy wywołać po nazwie
+        return "git"
 
     # ==================================================
     # BASIC STATE
@@ -70,11 +94,13 @@ class GameInstaller:
         target = self.games_dir / game_id
         self.current_game_id = game_id
         self.download_progress = 0
+        
+        git_cmd = self._get_git_executable()
 
         try:
             # Używamy --progress, aby Git wysyłał dane o procentach
             process = subprocess.Popen(
-                ["git", "clone", "--progress", "--depth", "1", "-b", branch, repo_url, str(target)],
+                [git_cmd, "clone", "--progress", "--depth", "1", "-b", branch, repo_url, str(target)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, # Przekierowujemy błędy do stdout, by czytać wszystko razem
                 text=True,
@@ -127,6 +153,8 @@ class GameInstaller:
         
         # Ustawiamy stan pobierania przed rozpoczęciem procesów
         self.current_game_id = game_id
+        
+        git_cmd = self._get_git_executable()
 
         try:
             print(f"[Installer] Aktualizowanie {game_id}...")
@@ -134,21 +162,21 @@ class GameInstaller:
             # Wykonujemy operacje Gita. 
             # capture_output=True sprawia, że logi są przechwytywane pod maską.
             subprocess.run(
-                ["git", "fetch", "origin", branch],
+                [git_cmd, "fetch", "origin", branch],
                 cwd=target,
                 check=True,
                 capture_output=True,
                 text=True
             )
             subprocess.run(
-                ["git", "reset", "--hard", f"origin/{branch}"],
+                [git_cmd, "reset", "--hard", f"origin/{branch}"],
                 cwd=target,
                 check=True,
                 capture_output=True,
                 text=True
             )
             subprocess.run(
-                ["git", "clean", "-fd"],
+                [git_cmd, "clean", "-fd"],
                 cwd=target,
                 check=True,
                 capture_output=True,

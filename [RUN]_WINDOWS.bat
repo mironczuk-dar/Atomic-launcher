@@ -32,11 +32,21 @@ IF %ERRORLEVEL% EQU 0 (
     REM =========================================
     REM GIT UPDATE
     REM =========================================
-    where git >nul 2>nul
-    IF %ERRORLEVEL% EQU 0 (
+    
+    set "PORTABLE_GIT=%ROOT%PortableGit\cmd\git.exe"
+
+    if exist "%PORTABLE_GIT%" (
         if exist ".git" (
-            echo Updating via Git...
-            git pull origin main
+            echo Updating Launcher via Portable Git...
+            "%PORTABLE_GIT%" pull origin main
+        )
+    ) else (
+        where git >nul 2>nul
+        IF !ERRORLEVEL! EQU 0 (
+            if exist ".git" (
+                echo Updating Launcher via System Git...
+                git pull origin main
+            )
         )
     )
 

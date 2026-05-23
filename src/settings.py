@@ -93,39 +93,39 @@ DEFAULT_THEME_DATA = {
 }
 THEME_LIBRARY = {
     'Aurora' : {'colour_1' : "#0F1B3C",
-                'colour_2' : "#84A5FF",
-                'colour_3' : "#2B3A6A",
-                'colour_4' : "#D7E0FF"},
+                'colour_2' : "#D7E0FF",  # Lighter, more distinct blue
+                'colour_3' : "#5A7A9E",  # Mid-tone with better contrast
+                'colour_4' : "#B8D0FF"},
 
-    'Solar Flare' : {'colour_1' : "#3D180F",
-                     'colour_2' : "#FF9C42",
-                     'colour_3' : "#AA542C",
-                     'colour_4' : "#F6E0C7"},
+    'Solar Flare' : {'colour_1' : "#2D1806",  # Darker base for contrast
+                     'colour_2' : "#FF8F3C",  # Bright orange with better visibility
+                     'colour_3' : "#CC5E2B",  # Distinct warm tone
+                     'colour_4' : "#FFE4BC"},
 
-    'Forest Dusk' : {'colour_1' : "#102C1F",
-                     'colour_2' : "#6BB78E",
-                     'colour_3' : "#3E6752",
-                     'colour_4' : "#DCEFE2"},
+    'Forest Dusk' : {'colour_1' : "#0A1F10",  # Dark green base
+                     'colour_2' : "#98C99D",  # Bright sage (better contrast)
+                     'colour_3' : "#5D876E",  # Medium with good distinction
+                     'colour_4' : "#BDE8CC"},
 
-    'Ocean Depths' : {'colour_1' : "#04304D",
-                      'colour_2' : "#64B2E4",
-                      'colour_3' : "#1C5E80",
-                      'colour_4' : "#D7EDFF"},
+    'Ocean Depths' : {'colour_1' : "#042539",  # Dark blue for better contrast
+                      'colour_2' : "#6CBCEC",  # Brighter cyan (distinguishable)
+                      'colour_3' : "#3A7E8B",  # Mid-tone with contrast
+                      'colour_4' : "#CCF0FF"},
 
-    'Neon Grid' : {'colour_1' : "#140B2A",
-                   'colour_2' : "#FF5EBF",
-                   'colour_3' : "#7E62E8",
-                   'colour_4' : "#E9E1FF"},
+    'Neon Grid' : {'colour_1' : "#150C2F",   # Dark purple base
+                   'colour_2' : "#E035F8",   # Bright magenta (more distinct)
+                   'colour_3' : "#9B64FF",   # Medium violet with contrast
+                   'colour_4' : "#EDE1FE"},
 
-    'Slate Bloom' : {'colour_1' : "#232F41",
-                     'colour_2' : "#7AA1D2",
-                     'colour_3' : "#4F6D8B",
-                     'colour_4' : "#EFF4FA"},
+    'Slate Bloom' : {'colour_1' : "#232D3E", # Darker slate for better text contrast
+                     'colour_2' : "#A8C9EE", # Bright blue (more visible)
+                     'colour_3' : "#6B8FAF", # Medium with good distinction
+                     'colour_4' : "#DCEAF7"},
 
-    'High Contrast' : {'colour_1' : "#000000",
-                       'colour_2' : "#FFFF00",
-                       'colour_3' : "#FFFFFF",
-                       'colour_4' : "#444444"},
+    'High Contrast' : {'colour_1' : "#1A1A1A",  # Dark gray background (non-black)
+                       'colour_2' : "#FFFFFF",   # White text
+                       'colour_3' : "#000000",   # Black elements
+                       'colour_4' : "#FFD700"},   # Gold for accents
 }
 
 

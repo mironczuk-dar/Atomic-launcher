@@ -23,8 +23,8 @@ class VideoOptionsTab(GenericOptionsTab):
         # Optimized for Raspberry Pi and various displays
         s.resolution_list = [
             ('Fullscreen', None),
+            ('1920x1080 (16:9)', [1920, 1080]),
             ('1280x720 (16:9)', [1280, 720]),
-            ('1024x768 (4:3)', [1024, 768]),
             ('1024x600 (17:10)', [1024, 600]),
             ('800x600 (4:3)', [800, 600]),
             ('800x480 (16:9)', [800, 480]),

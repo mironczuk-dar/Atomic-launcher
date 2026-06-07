@@ -1,84 +1,171 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atomic Launcher</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-
-        header {
-            text-align: center;
-            padding: 80px 20px;
-        }
-
-        h1 {
-            font-size: 3rem;
-        }
-
-        .button {
-            display: inline-block;
-            background: #2563eb;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 8px;
-            margin-top: 20px;
-        }
-
-        section {
-            max-width: 900px;
-            margin: auto;
-            padding: 40px 20px;
-        }
-
-        .card {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-    </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Atomic Launcher — Modern Game Launcher</title>
+    <meta name="description" content="Atomic Launcher — a modern, open-source launcher and game management platform." />
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="#">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Atomic Launcher
+            </a>
+            <nav class="main-nav">
+                <a href="#features">Features</a>
+                <a href="#games">Library</a>
+                <a href="#about">About</a>
+                <a class="cta" href="https://github.com/mironczuk-dar/Atomic-launcher" target="_blank">View on GitHub</a>
+            </nav>
+        </div>
+    </header>
 
-<header>
-    <h1>Atomic Launcher</h1>
-    <p>Modern launcher and game management platform.</p>
+    <main>
+        <div class="hero-wrapper">
+            <div class="hero container">
+                <h1>Atomic launcher,<br><span class="text-gradient">Games made using Python!</span></h1>
+                <p class="lead">Launch, organize, and update your indie games with a clean, lightweight, cross-platform interface designed for players and developers.</p>
+                
+                <div class="terminal-box">
+                    <code id="clone-cmd">git clone https://github.com/mironczuk-dar/Atomic-launcher.git</code>
+                    <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('clone-cmd').innerText); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy', 2000);">Copy</button>
+                </div>
 
-    <a class="button"
-       href="https://github.com/mironczuk-dar/Atomic-launcher">
-       View on GitHub
-    </a>
-</header>
+                <div class="hero-actions">
+                    <a class="button primary" href="games.html">View All Games</a>
+                    <a class="button ghost" href="#features">Learn More</a>
+                </div>
+            </div>
+        </div>
 
-<section>
-    <div class="card">
-        <h2>Features</h2>
-        <ul>
-            <li>Game Library Management</li>
-            <li>Store Integration</li>
-            <li>User Profiles</li>
-            <li>Achievement System</li>
-            <li>Cross-platform Support</li>
-        </ul>
-    </div>
+        <section id="showcase" class="container section">
+            <div class="section-head text-center">
+                <h2>Inside the Launcher</h2>
+                <p class="muted">A sleek, distraction-free environment built for your games.</p>
+            </div>
+            <div class="showcase-gallery">
+                <div class="showcase-item main-image">
+                    <img src="../docs/images/library_page.png" alt="Atomic Launcher Library Page">
+                </div>
+                <div class="showcase-row">
+                    <div class="showcase-item">
+                        <img src="../docs/images/store_page.png" alt="Atomic Launcher Store Page">
+                    </div>
+                    <div class="showcase-item">
+                        <img src="../docs/images/game_preview_page.png" alt="Atomic Launcher Game Preview">
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <div class="card">
-        <h2>About</h2>
-        <p>
-            Atomic Launcher is a game launcher project developed by
-            Dariusz Mirończuk.
-        </p>
-    </div>
-</section>
+        <section id="features" class="container section">
+            <div class="section-head text-center">
+                <h2>Built for Gamers & Creators</h2>
+                <p class="muted">Everything you need to manage your custom library efficiently.</p>
+            </div>
+            <div class="features-grid">
+                <article class="feature">
+                    <div class="feature-icon">📚</div>
+                    <h3>Library Management</h3>
+                    <p>Organize installed and available titles with custom tags, fast filters, and detailed play history.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-icon">🛒</div>
+                    <h3>Store Integration</h3>
+                    <p>Browse integrated storefronts and smoothly import purchases or free educational titles.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Cross-Platform</h3>
+                    <p>Highly optimized to run smoothly on Windows, Linux, and lightweight hardware like Raspberry Pi.</p>
+                </article>
+            </div>
+        </section>
 
+        <section id="games" class="container section">
+            <div class="section-head">
+                <h2>Featured Library</h2>
+                <p class="muted">A curated selection of indie gems included in the Atomic ecosystem.</p>
+            </div>
+            <div class="games-grid">
+                <div class="game-card">
+                    <div class="game-art">
+                        <img src="../assets/store_assets/flyre/icon.png" alt="Flyre" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxZTI5M2IiLz48L3N2Zz4='">
+                    </div>
+                    <div class="game-info">
+                        <h4>Flyre</h4>
+                        <p class="muted text-small">By CozyFractal</p>
+                        <p class="game-desc">2D pixel art shoot-em-up with a deep skill tree. New update out now!</p>
+                        <div class="tags">
+                            <span class="tag">pixel-art</span>
+                            <span class="tag">arcade</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="game-card">
+                    <div class="game-art">
+                        <img src="../assets/store_assets/five_nights_at_pythons/icon.png" alt="Five Nights at Pythons" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxZTI5M2IiLz48L3N2Zz4='">
+                    </div>
+                    <div class="game-info">
+                        <h4>Five Nights at Pythons</h4>
+                        <p class="muted text-small">By Dariusz J. Mirończuk</p>
+                        <p class="game-desc">Survive 5 nights in a pizzeria full of terrifying python animatronics.</p>
+                        <div class="tags">
+                            <span class="tag">horror</span>
+                            <span class="tag">maskot</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-card">
+                    <div class="game-art">
+                        <img src="../assets/store_assets/pack_the_bag/icon.png" alt="Pack the Bag" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxZTI5M2IiLz48L3N2Zz4='">
+                    </div>
+                    <div class="game-info">
+                        <h4>Pack the Bag</h4>
+                        <p class="muted text-small">By plasmastarfish</p>
+                        <p class="game-desc">You're leaving for a trip! Strategically pack all your items into a suitcase.</p>
+                        <div class="tags">
+                            <span class="tag">cozy</span>
+                            <span class="tag">puzzle</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="container section">
+            <div class="muted-card">
+                <div class="about-content">
+                    <h2>About the Project</h2>
+                    <p>Atomic Launcher is an open-source initiative by <strong>Dariusz Mirończuk</strong>, focused on delivering a compact, extensible launcher tailored for small indie games and educational projects. Built with Python, the repository includes everything needed: tools for asset importing, dynamic game manifests, audio management, and modern UI components.</p>
+                    <div class="quick-links">
+                        <a class="button primary" href="../README.md">Read the Docs</a>
+                        <a class="button ghost" href="../requirements.txt">View Requirements</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <strong>Atomic Launcher</strong>
+                <p class="muted text-small">© 2026 Dariusz Mirończuk</p>
+            </div>
+            <nav class="footer-nav">
+                <a href="#features">Features</a>
+                <a href="#games">Games</a>
+                <a href="#about">About</a>
+                <a href="https://github.com/mironczuk-dar/Atomic-launcher" target="_blank">GitHub</a>
+            </nav>
+        </div>
+    </footer>
 </body>
 </html>

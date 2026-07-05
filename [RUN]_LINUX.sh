@@ -63,4 +63,4 @@ else
 fi
 
 echo "Starting Atomic Launcher..."
-"$PYTHON" code/main.py
+"$PYTHON" src/main.py

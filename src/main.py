@@ -239,7 +239,7 @@ class Launcher:
                 # store new non-fullscreen size and recreate display surface
                 s.window_data['width'] = event.w
                 s.window_data['height'] = event.h
-                s.display = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            #     s.display = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE) # causes issues on hyprland
                 s.screen = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
                 save_data(s.window_data, WINDOW_DATA_PATH)
 

@@ -48,18 +48,8 @@ class NavigationTutorial:
         if self.state != 'visible':
             return False
 
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                break 
-
-        if current_key is None:
-            return False
-
-        controls = self.launcher.controlls_data['keyboard']
-        
-        if current_key == pygame.K_RETURN or current_key == controls.get('action_a'):
+        input_manager = getattr(self.launcher, 'input_manager', None)
+        if input_manager and input_manager.just_pressed('action_a'):
             self.dismiss()
             return True
 

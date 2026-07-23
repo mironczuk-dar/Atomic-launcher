@@ -93,59 +93,44 @@ class VideoOptionsTab(GenericOptionsTab):
         if s.launcher.state_manager.ui_focus != 'content':
             return
 
-        # 1. Capture the single KEYDOWN event from the queue
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                break # We only need one key press per frame
-
-        if current_key is None:
+        input_manager = getattr(s.launcher, 'input_manager', None)
+        if input_manager is None:
             return
 
-        # 2. Map current_key to actions
-        is_up = current_key == ctrl['up']
-        is_down = current_key == ctrl['down']
-        is_left = current_key == ctrl['left']
-        is_right = current_key == ctrl['right']
-        is_confirm = current_key in [ctrl['action_a'], pygame.K_RETURN]
-
-        # --- MOVE UP / DOWN / LEFT / RIGHT ---
         if s.active_column == 'resolution':
             col = s.resolution_index % s.resolution_cols
             row = s.resolution_index // s.resolution_cols
             
-            if is_up:
+            if input_manager.just_pressed('up'):
                 if row > 0:
                     s.resolution_index -= s.resolution_cols
-            elif is_down:
+            elif input_manager.just_pressed('down'):
                 if (row + 1) * s.resolution_cols + col < len(s.resolution_list):
                     s.resolution_index += s.resolution_cols
             
-            if is_left:
+            if input_manager.just_pressed('left'):
                 if col > 0:
                     s.resolution_index -= 1
-            elif is_right:
+            elif input_manager.just_pressed('right'):
                 if col < s.resolution_cols - 1:
                     s.resolution_index += 1
                 else:
                     s.active_column = 'fps'
         
-        else:  # fps column
-            if is_up:
+        else:
+            if input_manager.just_pressed('up'):
                 if s.fps_index > 0:
                     s.fps_index -= 1
-            elif is_down:
+            elif input_manager.just_pressed('down'):
                 if s.fps_index < len(s.FPS_options) - 1:
                     s.fps_index += 1
             
-            if is_left:
+            if input_manager.just_pressed('left'):
                 s.active_column = 'resolution'
                 row = min(s.fps_index, (len(s.resolution_list) - 1) // s.resolution_cols)
                 s.resolution_index = row * s.resolution_cols + (s.resolution_cols - 1)
 
-        # --- CONFIRM ---
-        if is_confirm:
+        if input_manager.just_pressed('action_a'):
             if s.active_column == 'resolution':
                 res_label, res_dims = s.resolution_list[s.resolution_index]
                 if res_label == 'Fullscreen':

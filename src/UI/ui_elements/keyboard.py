@@ -41,30 +41,28 @@ class Keyboard:
 
     def handling_events(s, events):
         """Handle controller/keyboard events for the on-screen keyboard."""
-        ctrl = s.game.controlls_data['keyboard']
+        input_manager = getattr(s.game, 'input_manager', None)
+        if input_manager is None:
+            return
+
+        if input_manager.just_pressed('up'):
+            s.grid_pos[0] = (s.grid_pos[0] - 1) % len(s.layout)
+        elif input_manager.just_pressed('down'):
+            s.grid_pos[0] = (s.grid_pos[0] + 1) % len(s.layout)
+        elif input_manager.just_pressed('left'):
+            s.grid_pos[1] = (s.grid_pos[1] - 1) % len(s.layout[s.grid_pos[0]])
+        elif input_manager.just_pressed('right'):
+            s.grid_pos[1] = (s.grid_pos[1] + 1) % len(s.layout[s.grid_pos[0]])
         
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                
-                #NAVIGATING THE KEYBOARD GRID
-                if event.key == ctrl['up']:
-                    s.grid_pos[0] = (s.grid_pos[0] - 1) % len(s.layout)
-                elif event.key == ctrl['down']:
-                    s.grid_pos[0] = (s.grid_pos[0] + 1) % len(s.layout)
-                elif event.key == ctrl['left']:
-                    s.grid_pos[1] = (s.grid_pos[1] - 1) % len(s.layout[s.grid_pos[0]])
-                elif event.key == ctrl['right']:
-                    s.grid_pos[1] = (s.grid_pos[1] + 1) % len(s.layout[s.grid_pos[0]])
-                
-                if s.grid_pos[1] >= len(s.layout[s.grid_pos[0]]):
-                    s.grid_pos[1] = len(s.layout[s.grid_pos[0]]) - 1
+        if s.grid_pos[1] >= len(s.layout[s.grid_pos[0]]):
+            s.grid_pos[1] = len(s.layout[s.grid_pos[0]]) - 1
 
-                if event.key == ctrl['action_a']:
-                    char = s.layout[s.grid_pos[0]][s.grid_pos[1]]
-                    s.select_char(char)
+        if input_manager.just_pressed('action_a'):
+            char = s.layout[s.grid_pos[0]][s.grid_pos[1]]
+            s.select_char(char)
 
-                if event.key == ctrl['action_b']:
-                    s.text = s.text[:-1]
+        if input_manager.just_pressed('action_b'):
+            s.text = s.text[:-1]
 
     def select_char(s, char):
         """Interpret the selected grid cell and update the typed text."""

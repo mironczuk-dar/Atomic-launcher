@@ -22,9 +22,9 @@ DEFAULT_GAME_LIBRARY_DATA = {
     'navigation_tutorial_shown' : False
 }
 
-#CONTROLLS SETTIGNS
-CONTROLLS_DATA_PATH = join(BASE_DIR, 'data', 'controlls_data.json')
-DEFAULT_CONTROLLS_DATA = {
+#CONTROLLS SETTINGS
+CONTROLS_DATA_PATH = join(BASE_DIR, "data", "controls.json")
+DEFAULT_CONTROLS_DATA = {
     'keyboard' : {
     'up' : pygame.K_UP,
     'down' : pygame.K_DOWN,
@@ -32,35 +32,22 @@ DEFAULT_CONTROLLS_DATA = {
     'right' : pygame.K_RIGHT,
     'options' : pygame.K_TAB,
     'action_a' : pygame.K_r,
-    'action_b' : pygame.K_e,
-    'action_x' : pygame.K_w,
-    'action_y' : pygame.K_q
-},
-    'controller' : {
-    'up' : 0,
-    'down' : 1,
-    'left' : 2,
-    'right' : 3,
-    'options' : 4,
-    'action_a' : 5,
-    'action_b' : 6,
-    'action_x' : 7,
-    'action_y' : 8
-}}
+    'action_b' : pygame.K_e},
 
-#RASPBERRY PI GPIO CONTROLLER SETTINGS
-GPIO_CONTROLLS_DATA_PATH = join(BASE_DIR, 'data', 'gpio_controlls_data.json')
-DEFAULT_GPIO_CONTROLLS_DATA = {
-    'up' : 17,
-    'down' : 27,
-    'left' : 22,
-    'right' : 23,
-    'options' : 24,
-    'action_a' : 5,
-    'action_b' : 6,
-    'action_x' : 13,
-    'action_y' : 19
-}
+    'gamepad' : {
+        'action_a' : 0,
+        'action_b' : 1,
+        'options' : 6,
+    },
+    'gpio' : {
+        'up' : 17,
+        'down' : 27,
+        'left' : 22,
+        'right' : 23,
+        'action_a' : 5,
+        'action_b' : 6,
+        'options' : 13
+    }}
 
 #SCREEN / WINDOW SETTINGS
 WINDOW_DATA_PATH = join(BASE_DIR, 'data', 'window_data.json')

@@ -40,29 +40,16 @@ class ThemesOptionsTab(GenericOptionsTab):
         if s.launcher.state_manager.ui_focus != 'content':
             return
 
-        # 1. Capture the single KEYDOWN event from the queue
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                break 
-
-        if current_key is None:
+        input_manager = getattr(s.launcher, 'input_manager', None)
+        if input_manager is None:
             return
 
-        # 2. Map current_key to logical navigation
-        is_up = current_key == ctrl['up']
-        is_down = current_key == ctrl['down']
-        is_confirm = current_key in [ctrl['action_a'], pygame.K_RETURN]
-
-        # --- VERTICAL NAVIGATION ---
-        if is_up:
+        if input_manager.just_pressed('up'):
             s.selected_index = (s.selected_index - 1) % len(s.theme_names)
-        elif is_down:
+        elif input_manager.just_pressed('down'):
             s.selected_index = (s.selected_index + 1) % len(s.theme_names)
 
-        # --- APPLY THEME ACTION ---
-        if is_confirm:
+        if input_manager.just_pressed('action_a'):
             new_theme = s.theme_names[s.selected_index]
             s.apply_theme(new_theme)
 

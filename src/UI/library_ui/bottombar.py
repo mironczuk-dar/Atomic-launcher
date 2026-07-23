@@ -87,34 +87,19 @@ class BottomBar:
         if not s.visible:
             return
 
-        # 1. Capture a single KEYDOWN event. The bottom bar ignores other
-        #    mouse/key repeat events for reliable menu navigation.
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                break 
-
-        if current_key is None:
+        input_manager = getattr(s.launcher, 'input_manager', None)
+        if input_manager is None:
             return
 
-        controlls = s.launcher.controlls_data['keyboard']
-        is_up = current_key == controlls['up']
-        is_down = current_key == controlls['down']
-        is_back = current_key == controlls['action_b']
-        is_confirm = current_key in [controlls['action_a'], pygame.K_RETURN]
-
-        # --- CLOSE BAR (BACK) ---
-        if is_back:
+        if input_manager.just_pressed('action_b'):
             s.close_bottombar()
             return
 
-        # --- VERTICAL NAVIGATION ---
-        if is_up:
+        if input_manager.just_pressed('up'):
             s.index = max(0, s.index - 1)
-        elif is_down:
+        elif input_manager.just_pressed('down'):
             s.index = min(len(s.options) - 1, s.index + 1)
-        elif is_confirm:
+        elif input_manager.just_pressed('action_a'):
             s.options[s.index]["callback"]()
             s.close_bottombar()
 

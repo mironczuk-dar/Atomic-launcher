@@ -9,7 +9,7 @@ import pygame
 
 from settings import get_contrast_text_color
 from Tools.data_loading_tools import save_data
-from settings import CONTROLLS_DATA_PATH, THEME_LIBRARY, WINDOW_WIDTH
+from settings import CONTROLS_DATA_PATH, THEME_LIBRARY, WINDOW_WIDTH
 from UI.options_ui.generic_options_tab import GenericOptionsTab
 
 
@@ -100,74 +100,67 @@ class ControlsOptionsTab(GenericOptionsTab):
         for key, val in preset_data.items():
             s.launcher.controlls_data['keyboard'][key] = val
             
-        save_data(s.launcher.controlls_data, CONTROLLS_DATA_PATH)
+        save_data(s.launcher.controlls_data, CONTROLS_DATA_PATH)
 
     def handling_events(s, events, ctrl):
         if s.launcher.state_manager.ui_focus != 'content':
             return
 
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                
-                # --- LOGIC FOR REBINDING KEYS ---
-                if s.waiting_for_key:
-                    if current_key != pygame.K_ESCAPE:
-                        col_key = s.column_names[s.active_col_idx]
-                        action_name = s.columns[col_key][s.selected_index]
-                        s.update_control(action_name, current_key)
-                        
-                        s.preset_idx = 2 
-                        s.preset_focus_idx = 2
-                        
-                    s.waiting_for_key = False
-                    return 
+        input_manager = getattr(s.launcher, 'input_manager', None)
 
-        if s.waiting_for_key or current_key is None:
+        for event in events:
+            if event.type == pygame.KEYDOWN and s.waiting_for_key:
+                current_key = event.key
+                if current_key != pygame.K_ESCAPE:
+                    col_key = s.column_names[s.active_col_idx]
+                    action_name = s.columns[col_key][s.selected_index]
+                    s.update_control(action_name, current_key)
+                    s.preset_idx = 2
+                    s.preset_focus_idx = 2
+                s.waiting_for_key = False
+                return
+
+        if s.waiting_for_key:
             return
 
-        is_up = current_key == ctrl['up']
-        is_down = current_key == ctrl['down']
-        is_left = current_key == ctrl['left']
-        is_right = current_key == ctrl['right']
-        is_confirm = current_key in [ctrl['action_a'], pygame.K_RETURN]
+        if input_manager is None:
+            return
 
-        # --- PRESET SELECTOR NAVIGATION ---
-        if s.focus_area == 'preset':
-            if is_left:
+        if input_manager.just_pressed('up'):
+            if s.focus_area == 'preset':
+                if s.preset_focus_idx > 0:
+                    s.preset_focus_idx -= 1
+            else:
+                if s.selected_index == 0:
+                    s.focus_area = 'preset'
+                    s.preset_focus_idx = s.preset_idx
+                else:
+                    s.selected_index -= 1
+        elif input_manager.just_pressed('down'):
+            if s.focus_area == 'preset':
+                s.focus_area = 'bindings'
+            else:
+                current_col_key = s.column_names[s.active_col_idx]
+                num_items = len(s.columns[current_col_key])
+                s.selected_index = min(num_items - 1, s.selected_index + 1)
+        elif input_manager.just_pressed('left'):
+            if s.focus_area == 'preset':
                 s.preset_focus_idx = max(0, s.preset_focus_idx - 1)
-            elif is_right:
+            else:
+                s.active_col_idx = max(0, s.active_col_idx - 1)
+                s.selected_index = min(s.selected_index, len(s.columns[s.column_names[s.active_col_idx]]) - 1)
+        elif input_manager.just_pressed('right'):
+            if s.focus_area == 'preset':
                 s.preset_focus_idx = min(len(s.preset_names) - 1, s.preset_focus_idx + 1)
-            elif is_confirm:
+            else:
+                s.active_col_idx = min(len(s.column_names) - 1, s.active_col_idx + 1)
+                s.selected_index = min(s.selected_index, len(s.columns[s.column_names[s.active_col_idx]]) - 1)
+        elif input_manager.just_pressed('action_a'):
+            if s.focus_area == 'preset':
                 s.preset_idx = s.preset_focus_idx
                 s.apply_preset()
-            elif is_down:
-                s.focus_area = 'bindings'  
-            return  
-
-        # --- BINDINGS COLUMN NAVIGATION ---
-        current_col_key = s.column_names[s.active_col_idx]
-        num_items = len(s.columns[current_col_key])
-
-        if is_left:
-            s.active_col_idx = max(0, s.active_col_idx - 1)
-            s.selected_index = min(s.selected_index, len(s.columns[s.column_names[s.active_col_idx]]) - 1)
-        elif is_right:
-            s.active_col_idx = min(len(s.column_names) - 1, s.active_col_idx + 1)
-            s.selected_index = min(s.selected_index, len(s.columns[s.column_names[s.active_col_idx]]) - 1)
-
-        if is_up:
-            if s.selected_index == 0:
-                s.focus_area = 'preset'
-                s.preset_focus_idx = s.preset_idx  # Snap cursor back to active preset
             else:
-                s.selected_index -= 1
-        elif is_down:
-            s.selected_index = min(num_items - 1, s.selected_index + 1)
-
-        if is_confirm:
-            s.waiting_for_key = True
+                s.waiting_for_key = True
 
     def draw(s, window):
         has_focus = (s.launcher.state_manager.ui_focus == 'content')
@@ -271,4 +264,4 @@ class ControlsOptionsTab(GenericOptionsTab):
 
     def update_control(s, action_name, new_key):
         s.launcher.controlls_data['keyboard'][action_name] = new_key
-        save_data(s.launcher.controlls_data, CONTROLLS_DATA_PATH)
+        save_data(s.launcher.controlls_data, CONTROLS_DATA_PATH)

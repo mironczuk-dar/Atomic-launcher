@@ -313,6 +313,7 @@ class Library(BaseState):
         s.apply_search_filter(s.searchbar.text)
 
     def handling_events(s, events):
+        input_manager = getattr(s.launcher, 'input_manager', None)
         controlls = s.launcher.controlls_data
         
         # 1. INPUT BARRIER: If the tutorial is active, it handles inputs exclusively
@@ -321,64 +322,58 @@ class Library(BaseState):
             s.navigation_tutorial.handle_input(events)
             return
 
+        if s.searchbar.active:
+            s.searchbar.handle_events(events)
+            return
+
+        if s.bottombar.visible:
+            s.bottombar.handling_events(events)
+            return
+
+        if s.launcher.state_manager.ui_focus != 'content':
+            return
+
         # --- CORE LIBRARY LOGIC (Only runs when tutorial is gone) ---
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                key = event.key
+        if input_manager and input_manager.just_pressed('action_b') and len(s.game_library) != 0:
+            s.bottombar.open_bottombar()
+            return
 
-                if s.searchbar.active:
-                    s.searchbar.handle_events(events)
-                    return
+        if s.topbar_focus:
+            s.fav_toggle.is_selected = (s.topbar_index == 1)
+            s.keyboard_filter_toggle.is_selected = (s.topbar_index == 2)
+            s.mouse_filter_toggle.is_selected = (s.topbar_index == 3)
 
-                if s.bottombar.visible:
-                    s.bottombar.handling_events(events)
-                    return
+            if input_manager and input_manager.just_pressed('down'):
+                s.topbar_focus = False
+                s.fav_toggle.is_selected = False
+                s.keyboard_filter_toggle.is_selected = False
+                s.mouse_filter_toggle.is_selected = False
+            elif input_manager and input_manager.just_pressed('left'):
+                s.topbar_index = (s.topbar_index - 1) % 4
+            elif input_manager and input_manager.just_pressed('right'):
+                s.topbar_index = (s.topbar_index + 1) % 4
+            elif input_manager and input_manager.just_pressed('action_a'):
+                if s.topbar_index == 0:
+                    s.searchbar.open_keyboard()
+                elif s.topbar_index == 1:
+                    s.fav_toggle.toggle()
+                elif s.topbar_index == 2:
+                    s.keyboard_filter_toggle.toggle()
+                elif s.topbar_index == 3:
+                    s.mouse_filter_toggle.toggle()
+            return
 
-                if s.launcher.state_manager.ui_focus != 'content':
-                    return
-
-                # 3. TOPBAR NAVIGATION
-                if s.topbar_focus:
-                    s.fav_toggle.is_selected = (s.topbar_index == 1)
-                    s.keyboard_filter_toggle.is_selected = (s.topbar_index == 2)
-                    s.mouse_filter_toggle.is_selected = (s.topbar_index == 3)
-
-                    if key == controlls['keyboard']['down']:
-                        s.topbar_focus = False
-                        s.fav_toggle.is_selected = False
-                        s.keyboard_filter_toggle.is_selected = False
-                        s.mouse_filter_toggle.is_selected = False
-                    elif key == controlls['keyboard']['left']:
-                        s.topbar_index = (s.topbar_index - 1) % 4
-                    elif key == controlls['keyboard']['right']:
-                        s.topbar_index = (s.topbar_index + 1) % 4
-                    if key == pygame.K_RETURN or key == controlls['keyboard']['action_a']:
-                        if s.topbar_index == 0:
-                            s.searchbar.open_keyboard()
-                        elif s.topbar_index == 1:
-                            s.fav_toggle.toggle()
-                        elif s.topbar_index == 2:
-                            s.keyboard_filter_toggle.toggle()
-                        elif s.topbar_index == 3:
-                            s.mouse_filter_toggle.toggle()
-                    return
-
-                # 4. CONTENT NAVIGATION
-                if key == controlls['keyboard']['action_b'] and len(s.game_library) != 0:
-                    s.bottombar.open_bottombar()
-                    return
-
-                if key == controlls['keyboard']['left']:
-                    if s.selected_index == 0:
-                        s.launcher.state_manager.ui_focus = "sidebar"
-                    else:
-                        s.selected_index -= 1
-                elif key == controlls['keyboard']['right']:
-                    s.selected_index = min(len(s.filtered_games) - 1, s.selected_index + 1)
-                elif key == pygame.K_RETURN or key == controlls['keyboard']['action_a']:
-                    s.launch_game()
-                elif key == controlls['keyboard']['up']:
-                    s.topbar_focus = True
+        if input_manager and input_manager.just_pressed('left'):
+            if s.selected_index == 0:
+                s.launcher.state_manager.ui_focus = "sidebar"
+            else:
+                s.selected_index -= 1
+        elif input_manager and input_manager.just_pressed('right'):
+            s.selected_index = min(len(s.filtered_games) - 1, s.selected_index + 1)
+        elif input_manager and input_manager.just_pressed('action_a'):
+            s.launch_game()
+        elif input_manager and input_manager.just_pressed('up'):
+            s.topbar_focus = True
 
     def update(s, delta_time):
         super().update(delta_time)

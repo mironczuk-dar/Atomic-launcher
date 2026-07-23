@@ -267,43 +267,33 @@ class GamePreview(BaseState):
 
     def handling_events(s, events):
         """Handle input events while the game preview is active."""
-        ctrl = s.launcher.controlls_data['keyboard']
-        
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                
-                is_up = current_key == ctrl['up']
-                is_down = current_key == ctrl['down']
-                is_left = current_key == ctrl['left']
-                is_right = current_key == ctrl['right']
-                is_confirm = current_key in [ctrl['action_a'], pygame.K_RETURN]
-                is_back = current_key in [ctrl['action_b'], pygame.K_ESCAPE]
+        input_manager = getattr(s.launcher, 'input_manager', None)
 
-                # --- FULLSCREEN MODE LOGIC ---
-                if s.is_fullscreen:
-                    if is_back or current_key == pygame.K_SPACE:
-                        s.is_fullscreen = False
-                    elif is_left:
-                        s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
-                    elif is_right:
-                        s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
-                    continue
+        if input_manager is None:
+            return
 
-                # --- STANDARD PREVIEW LOGIC ---
-                if is_up:
-                    s.selection_index = (s.selection_index - 1) % len(s.actions)
-                elif is_down:
-                    s.selection_index = (s.selection_index + 1) % len(s.actions)
-                elif is_left:
-                    s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
-                elif is_right:
-                    s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
-                elif is_confirm:
-                    s.execute_action()
-                elif is_back:
-                    s.close_video() # Free resources when closing state
-                    s.launcher.state_manager.set_state('Store')
+        if s.is_fullscreen:
+            if input_manager.just_pressed('action_b') or any(event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE for event in events):
+                s.is_fullscreen = False
+            elif input_manager.just_pressed('left'):
+                s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
+            elif input_manager.just_pressed('right'):
+                s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
+            return
+
+        if input_manager.just_pressed('up'):
+            s.selection_index = (s.selection_index - 1) % len(s.actions)
+        elif input_manager.just_pressed('down'):
+            s.selection_index = (s.selection_index + 1) % len(s.actions)
+        elif input_manager.just_pressed('left'):
+            s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
+        elif input_manager.just_pressed('right'):
+            s.current_img_index = (s.current_img_index + 1) % len(s.screenshots)
+        elif input_manager.just_pressed('action_a'):
+            s.execute_action()
+        elif input_manager.just_pressed('action_b'):
+            s.close_video()
+            s.launcher.state_manager.set_state('Store')
 
     def execute_action(s):
         action_label = s.actions[s.selection_index]

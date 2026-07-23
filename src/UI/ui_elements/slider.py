@@ -84,37 +84,23 @@ class Slider:
 
     def handling_events(s, events, ctrl=None):
         """Process mouse and keyboard/controller events for the slider."""
-        # Handle both s.game and s.launcher architectures safely
         engine = s.game if hasattr(s, 'game') else s.launcher
+        input_manager = getattr(engine, 'input_manager', None)
         mouse_pos = engine.get_scaled_mouse_pos()
 
         for event in events:
-            # =============================
-            # MOUSE DRAG
-            # =============================
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and s.handle_rect.collidepoint(mouse_pos):
                     s.dragging = True
-
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
                     s.dragging = False
 
-            # =============================
-            # KEYBOARD CONTROL (Remapped)
-            # =============================
-            if s.is_selected and event.type == pygame.KEYDOWN and ctrl is not None:
-                if event.key == ctrl['right']:
-                    s.change_value(s.step)
-                elif event.key == ctrl['left']:
-                    s.change_value(-s.step)
-                    
-            # Fallback for raw keyboard if ctrl mapping isn't passed down
-            elif s.is_selected and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RIGHT:
-                    s.change_value(s.step)
-                elif event.key == pygame.K_LEFT:
-                    s.change_value(-s.step)
+        if s.is_selected and input_manager is not None:
+            if input_manager.just_pressed('right'):
+                s.change_value(s.step)
+            elif input_manager.just_pressed('left'):
+                s.change_value(-s.step)
 
 
         # =============================

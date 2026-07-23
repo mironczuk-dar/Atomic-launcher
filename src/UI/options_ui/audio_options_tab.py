@@ -100,15 +100,9 @@ class AudioOptionsTab(GenericOptionsTab):
         if s.launcher.state_manager.ui_focus != 'content':
             return
 
-        # 1. Capture the single KEYDOWN event from the queue
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                break 
+        input_manager = getattr(s.launcher, 'input_manager', None)
 
-        if current_key is None:
-            # Still process mouse events for elements if needed
+        if input_manager is None:
             for element in s.ui_elements:
                 if hasattr(element, 'handling_events'):
                     try:
@@ -117,42 +111,28 @@ class AudioOptionsTab(GenericOptionsTab):
                         element.handling_events(events)
             return
 
-        # 2. Map current_key to logical navigation actions
-        is_up = current_key == ctrl['up']
-        is_down = current_key == ctrl['down']
-        is_left = current_key == ctrl['left']
-        is_right = current_key == ctrl['right']
-        is_confirm = current_key in [ctrl['action_a'], pygame.K_RETURN]
-
-        # --- VERTICAL NAVIGATION ---
-        if is_up:
+        if input_manager.just_pressed('up'):
             s.selected_index = (s.selected_index - 1) % len(s.ui_elements)
-        elif is_down:
+        elif input_manager.just_pressed('down'):
             s.selected_index = (s.selected_index + 1) % len(s.ui_elements)
 
-        # Update the s.is_selected flags so elements know who has focus
         for i, element in enumerate(s.ui_elements):
             if hasattr(element, 'is_selected'):
                 element.is_selected = (i == s.selected_index)
 
-        # 3. --- DISPATCH INTERACTION TO ACTIVE ELEMENT ---
         active_element = s.ui_elements[s.selected_index]
 
-        # Case A: Active element is a Slider
         if active_element.__class__.__name__ == "Slider":
-            if is_left:
+            if input_manager.just_pressed('left'):
                 active_element.change_value(-active_element.step)
-            elif is_right:
+            elif input_manager.just_pressed('right'):
                 active_element.change_value(active_element.step)
-
-        # Case B: Active element is a Button / Toggle Button
-        elif is_confirm:
+        elif input_manager.just_pressed('action_a'):
             if hasattr(active_element, 'activate'):
                 active_element.activate()
             elif hasattr(active_element, 'action') and active_element.action:
                 active_element.action()
 
-        # Pass remaining raw events (like mouse events) safely down to the element
         if hasattr(active_element, 'handling_events'):
             try:
                 active_element.handling_events(events, ctrl)

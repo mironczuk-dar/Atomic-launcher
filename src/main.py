@@ -12,7 +12,6 @@ the launcher.
 
 import pygame
 from sys import exit
-from os import environ
 import platform
 import socket
 import threading
@@ -24,18 +23,12 @@ from Tools.data_loading_tools import load_data, save_data
 from Machines.game_installing_machine import GameInstaller
 from Managers.audio_manager import AudioManager
 from Managers.state_manager import StateManager
+from Managers.input_manager import InputManager
 from UI.ui_elements.sidebar import Sidebar
 from States.library import Library
 from States.store import Store
 from States.options import Options
 from UI.store_ui.game_preview import GamePreview
-
-# Optional Raspberry Pi GPIO controller. If import fails the launcher
-# will continue to run without GPIO support.
-try:
-    from Drivers.raspberry_pi_gpio import RaspberryPiGPIOController
-except ImportError:
-    RaspberryPiGPIOController = None
 
 # Helpers that import and prepare game assets and audio in background
 from Machines.asset_importing_machine import load_audio, load_assets
@@ -63,9 +56,6 @@ class Launcher:
         # initialize pygame and load persistent configuration
         pygame.init()
         s.loading_in_launcher_data()
-
-        # optional GPIO controller on Raspberry Pi
-        s.setup_gpio_controller()
 
         # configure display flags (fullscreen or resizable)
         s.setting_up_display()
@@ -117,25 +107,6 @@ class Launcher:
         s.assets_loaded = True
         print('Assets loaded')
 
-    def setup_gpio_controller(s):
-        """Initialize Raspberry Pi GPIO controller if available.
-
-        The GPIO controller is optional; the launcher will continue to run on
-        other platforms without it.
-        """
-        s.gpio_controller = None
-        if s.is_pi and RaspberryPiGPIOController:
-            s.gpio_controller = RaspberryPiGPIOController(
-                s.gpio_controlls_data,
-                s.controlls_data['keyboard'],
-            )
-            print(f"System: {s.system}, Is Pi: {s.is_pi}")
-
-    def poll_gpio(s):
-        """Poll the GPIO controller for input events when present."""
-        if s.gpio_controller:
-            s.gpio_controller.poll()
-
     def checking_operating_system(s):
         """Detect the operating system and whether this is a Raspberry Pi.
 
@@ -170,9 +141,9 @@ class Launcher:
         s.audio_data = load_data(AUDIO_DATA_PATH, DEFAULT_AUDIO_DATA)
         s.theme_data = load_data(THEMES_DATA_PATH, DEFAULT_THEME_DATA)
         s.performance_settings_data = load_data(PERFORMANCE_SETTINGS_DATA_PATH, DEFAULT_PERFORMANCE_SETTINGS_DATA)
-        s.controlls_data = load_data(CONTROLLS_DATA_PATH, DEFAULT_CONTROLLS_DATA)
+        s.controlls_data = load_data(CONTROLS_DATA_PATH, DEFAULT_CONTROLS_DATA)
+        s.controls_data = s.controlls_data
         s.game_library_data = load_data(GAME_LIBRARY_DATA_PATH, DEFAULT_GAME_LIBRARY_DATA)
-        s.gpio_controlls_data = load_data(GPIO_CONTROLLS_DATA_PATH, DEFAULT_GPIO_CONTROLLS_DATA)
 
     def creating_states(s):
         """Instantiate application states and set the initial state."""
@@ -198,6 +169,8 @@ class Launcher:
         """Create top-level managers used across the application."""
         s.state_manager = StateManager(s)
         s.audio_manager = AudioManager(s)
+        s.input_manager = InputManager(s)
+        s.inpute_manager = s.input_manager
 
     def setting_up_display(s):
         """Configure initial display flags and remember last window size."""
@@ -211,9 +184,8 @@ class Launcher:
         save_data(s.audio_data, AUDIO_DATA_PATH)
         save_data(s.theme_data, THEMES_DATA_PATH)
         save_data(s.performance_settings_data, PERFORMANCE_SETTINGS_DATA_PATH)
-        save_data(s.controlls_data, CONTROLLS_DATA_PATH)
+        save_data(s.controlls_data, CONTROLS_DATA_PATH)
         save_data(s.game_library_data, GAME_LIBRARY_DATA_PATH)
-        save_data(s.gpio_controlls_data, GPIO_CONTROLLS_DATA_PATH)
 
     def handling_events(s):
         """Process Pygame events and forward them to the active state.
@@ -222,13 +194,13 @@ class Launcher:
         events (the launcher uses controller/keyboard navigation), and
         handles window lifecycle events such as resize and quit.
         """
-        # poll GPIO inputs first so states can react during the same frame
-        s.poll_gpio()
-
         # ignore raw mouse motion and clicks; launcher navigation is keyboard/controller-driven
         pygame.event.set_blocked([pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP])
 
         events = pygame.event.get()
+        if hasattr(s, 'input_manager'):
+            s.input_manager.update(events)
+
         for event in events:
             if event.type == pygame.QUIT:
                 s.save()

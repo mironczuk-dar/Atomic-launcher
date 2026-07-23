@@ -46,12 +46,9 @@ class StateManager:
         The `options` key toggles focus between the sidebar and the content
         area. Events are then dispatched accordingly.
         """
-        options_key = s.launcher.controlls_data['keyboard']['options']
-
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == options_key:
-                    s.ui_focus = "sidebar" if s.ui_focus != "sidebar" else "content"
+        input_manager = getattr(s.launcher, 'input_manager', None)
+        if input_manager and input_manager.just_pressed('options'):
+            s.ui_focus = "sidebar" if s.ui_focus != "sidebar" else "content"
 
         # Route events to the focused UI component
         if s.ui_focus == "sidebar":

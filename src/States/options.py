@@ -81,35 +81,25 @@ class Options(BaseState):
     def handling_events(s, events):
         """Route keyboard/controller input to the topbar or active options tab."""
         ctrl = s.launcher.controlls_data['keyboard']
+        input_manager = getattr(s.launcher, 'input_manager', None)
 
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                key = event.key
+        if s.launcher.state_manager.ui_focus == 'topbar':
+            if input_manager and input_manager.just_pressed('right'):
+                if s.topbar_index < len(s.tabs) - 1:
+                    s.topbar_index += 1
+            elif input_manager and input_manager.just_pressed('left'):
+                if s.topbar_index > 0:
+                    s.topbar_index -= 1
+                else:
+                    s.launcher.state_manager.ui_focus = 'sidebar'
+            elif input_manager and input_manager.just_pressed('action_a'):
+                s.launcher.state_manager.ui_focus = 'content'
+        elif s.launcher.state_manager.ui_focus == 'content':
+            _, active_tab = s.tabs[s.topbar_index]
+            active_tab.handling_events(events, ctrl)
 
-                # ---------- TOPBAR ----------
-                if s.launcher.state_manager.ui_focus == 'topbar':
-
-                    if key == ctrl['right']:
-                        if s.topbar_index < len(s.tabs) - 1:
-                            s.topbar_index += 1
-
-                    elif key == ctrl['left']:
-                        if s.topbar_index > 0:
-                            s.topbar_index -= 1
-                        else:
-                            s.launcher.state_manager.ui_focus = 'sidebar'
-
-                    if key == ctrl['action_a'] or key == pygame.K_RETURN:
-                        s.launcher.state_manager.ui_focus = 'content'
-
-                # ---------- CONTENT ----------
-                elif s.launcher.state_manager.ui_focus == 'content':
-                    # Pass the key press to the active tab
-                    _, active_tab = s.tabs[s.topbar_index]
-                    active_tab.handling_events(events, ctrl)
-
-                    if key == ctrl['action_b']:
-                        s.launcher.state_manager.ui_focus = 'topbar'
+            if input_manager and input_manager.just_pressed('action_b'):
+                s.launcher.state_manager.ui_focus = 'topbar'
 
     def draw_topbar(s, window):
         theme = THEME_LIBRARY[s.launcher.theme_data['current_theme']]

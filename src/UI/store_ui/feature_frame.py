@@ -127,18 +127,11 @@ class FeatureFrame:
 
     def handling_events(s, events):
         """Handle user navigation events for the featured frame."""
-        # 1. Handle Mouse (GPIO won't trigger this, which is correct)
-        for event in events:
-            if s.feature_frame.handle_mouse_event(event):
-                return 
-
-        # 2. Handle GPIO/Keyboard
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == s.launcher.controlls_data['keyboard']['left']:
-                    s.feature_frame.previous() # Triggered by GPIO
-                elif event.key == s.launcher.controlls_data['keyboard']['right']:
-                    s.feature_frame.next()     # Triggered by GPIO
+        input_manager = getattr(s.launcher, 'input_manager', None)
+        if input_manager and input_manager.just_pressed('left'):
+            s.previous()
+        elif input_manager and input_manager.just_pressed('right'):
+            s.next()
 
     def cycle_screenshot_forward(s):
         if not s.featured_games:

@@ -42,45 +42,25 @@ class PerformanceOptionsTab(GenericOptionsTab):
         if s.launcher.state_manager.ui_focus != 'content':
             return
 
-        # 1. Capture the single KEYDOWN event from the queue
-        current_key = None
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                current_key = event.key
-                break 
-
-        if current_key is None:
+        input_manager = getattr(s.launcher, 'input_manager', None)
+        if input_manager is None:
             return
 
-        # 2. Map current_key to logical navigation
-        is_up = current_key == ctrl['up']
-        is_down = current_key == ctrl['down']
-        is_left = current_key == ctrl['left']
-        is_right = current_key == ctrl['right']
-        is_confirm = current_key in [ctrl['action_a'], pygame.K_RETURN]
-
-        # --- COLUMN SWITCHING ---
-        if is_left or is_right:
+        if input_manager.just_pressed('left') or input_manager.just_pressed('right'):
             s.active_col = 'shutdown' if s.active_col == 'fps' else 'fps'
 
-        # --- VERTICAL NAVIGATION (FPS Column Only) ---
         if s.active_col == 'fps':
-            if is_up:
+            if input_manager.just_pressed('up'):
                 s.fps_index = (s.fps_index - 1) % len(s.fps_levels)
-            elif is_down:
+            elif input_manager.just_pressed('down'):
                 s.fps_index = (s.fps_index + 1) % len(s.fps_levels)
 
-        # --- ACTION / CONFIRMATION ---
-        if is_confirm:
+        if input_manager.just_pressed('action_a'):
             if s.active_col == 'fps':
-                # Update the FPS setting
                 s.launcher.performance_settings_data['decrease_launcher_fps_when_game_active'] = s.fps_levels[s.fps_index]
             else:
-                # Toggle the shutdown setting
                 current_val = s.launcher.performance_settings_data['turn_off_launcher_when_game_active']
                 s.launcher.performance_settings_data['turn_off_launcher_when_game_active'] = not current_val
-            
-            # Save the updated data
             save_data(s.launcher.performance_settings_data, PERFORMANCE_SETTINGS_DATA_PATH)
 
     def draw(s, window):

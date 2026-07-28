@@ -93,7 +93,8 @@ if ping -q -c 1 -W 1 8.8.8.8 >/dev/null; then
     if [ ! -d ".git" ]; then
         echo "Nie znaleziono repozytorium git w $(pwd)"
     else
-        git pull origin pi-testing
+        echo "Updating Launcher via System Git..."
+        git pull origin main
     fi
 
     echo "Installing/Updating requirements..."
@@ -106,5 +107,5 @@ else
 fi
 
 # 5. Launch
-echo "Starting Atomic Launcher..."
+echo "Starting program..."
 "$PYTHON" src/main.py

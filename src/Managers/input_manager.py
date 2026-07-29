@@ -25,13 +25,12 @@ class InputManager:
         s.hat_states = {'up': False, 'down': False, 'left': False, 'right': False}
 
         # INITIALIZING GPIO BUTTONS (Fails gracefully on non-Pi devices)
-        s.gpio_buttons = {}
-        s.gpio_previous_state = {}  # ADD THIS LINE to initialize the dictionary
-        
+        s.gpio_buttons = {}         # Maps action_name -> list of gpiozero.Button objects
+        s.gpio_previous_state = {}  # Maps action_name -> bool
+
         try:
             from gpiozero import Button
             
-            # Fetch the entire 'gpio' dictionary
             gpio_config = s.game.controls_data.get('gpio', {})
             
             # Iterate through all sub-groups inside 'gpio' (e.g., 'buttons', 'trackpad')
@@ -39,13 +38,14 @@ class InputManager:
                 if isinstance(pin_map, dict):
                     for action, pin in pin_map.items():
                         if pin is not None:
-                            # Initializes gpiozero Button for each pin defined
-                            s.gpio_buttons[action] = Button(pin)
+                            if action not in s.gpio_buttons:
+                                s.gpio_buttons[action] = []
+                                s.gpio_previous_state[action] = False
                             
-                            # ADD THIS LINE to set the default previous state to False
-                            s.gpio_previous_state[action] = False 
+                            # Append the button instance to the action's list
+                            s.gpio_buttons[action].append(Button(pin))
                             
-            print(f"Successfully initialized {len(s.gpio_buttons)} GPIO input pins.")
+            print(f"Successfully initialized GPIO input mapping for {len(s.gpio_buttons)} actions.")
         except ImportError:
             print("gpiozero library not found. Skipping GPIO setup.")
         except Exception as e:
@@ -222,8 +222,9 @@ class InputManager:
         if not s.gpio_buttons:
             return
 
-        for action, button in s.gpio_buttons.items():
-            is_pressed = button.is_pressed
+        for action, button_list in s.gpio_buttons.items():
+            # Action is active if AT LEAST ONE connected pin is currently pressed
+            is_pressed = any(btn.is_pressed for btn in button_list)
             was_pressed = s.gpio_previous_state[action]
 
             if is_pressed:

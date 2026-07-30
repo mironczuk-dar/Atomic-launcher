@@ -107,6 +107,18 @@ class ControlsOptionsTab(GenericOptionsTab):
             return
 
         input_manager = getattr(s.launcher, 'input_manager', None)
+        last_key = input_manager.get_last_key_down() if input_manager else None
+
+        if s.waiting_for_key and last_key is not None:
+            current_key = last_key
+            if current_key != pygame.K_ESCAPE:
+                col_key = s.column_names[s.active_col_idx]
+                action_name = s.columns[col_key][s.selected_index]
+                s.update_control(action_name, current_key)
+                s.preset_idx = 2
+                s.preset_focus_idx = 2
+            s.waiting_for_key = False
+            return
 
         for event in events:
             if event.type == pygame.KEYDOWN and s.waiting_for_key:

@@ -412,6 +412,8 @@ class Store(BaseState):
         state_manager = s.launcher.state_manager
         input_manager = getattr(s.launcher, 'input_manager', None)
 
+        last_key = input_manager.get_last_key_down() if input_manager else None
+
         for event in events:
             if event.type == pygame.KEYDOWN:
                 current_key = event.key
@@ -519,7 +521,7 @@ class Store(BaseState):
                     elif is_confirm:
                         s.enter_game_preview()
 
-                if current_key == pygame.K_s:
+                if current_key == pygame.K_s or last_key == pygame.K_s:
                     s.sort_mode = "Z-A" if s.sort_mode == "A-Z" else "A-Z"
                     s.apply_filters()
 

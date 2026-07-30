@@ -56,6 +56,16 @@ class InputManager:
         s.actions_pressed.add(action)
         s.actions_just_pressed.add(action)
 
+    def _set_action_state(s, action, is_active):
+        """Update pressed/released state for a single action while preserving just-released timing."""
+        if is_active:
+            s._trigger_action(action)
+        else:
+            was_active = action in s.actions_pressed
+            if was_active:
+                s.actions_just_released.add(action)
+            s.actions_pressed.discard(action)
+
     # QUERY METHODS FOR ACTION STATES
     def is_pressed(s, action): return action in s.actions_pressed
     def just_pressed(s, action): return action in s.actions_just_pressed
@@ -167,26 +177,12 @@ class InputManager:
             axis_y = joy.get_axis(1)
 
             # HORIZONTAL MOVEMENT
-            if axis_x < -s.DEADZONE:
-                s._trigger_action('left')
-            else:
-                s.actions_pressed.discard('left')
-
-            if axis_x > s.DEADZONE:
-                s._trigger_action('right')
-            else:
-                s.actions_pressed.discard('right')
+            s._set_action_state('left', axis_x < -s.DEADZONE)
+            s._set_action_state('right', axis_x > s.DEADZONE)
 
             # VERTICAL MOVEMENT
-            if axis_y < -s.DEADZONE:
-                s._trigger_action('up')
-            else:
-                s.actions_pressed.discard('up')
-
-            if axis_y > s.DEADZONE:
-                s._trigger_action('down')
-            else:
-                s.actions_pressed.discard('down')
+            s._set_action_state('up', axis_y < -s.DEADZONE)
+            s._set_action_state('down', axis_y > s.DEADZONE)
                 
             # 2. RIGHT STICK MOUSE CONTROL (Axes 2 and 3)
             if joy.get_numaxes() >= 4:

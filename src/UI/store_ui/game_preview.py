@@ -272,8 +272,10 @@ class GamePreview(BaseState):
         if input_manager is None:
             return
 
+        last_key = input_manager.get_last_key_down() if input_manager else None
+
         if s.is_fullscreen:
-            if input_manager.just_pressed('action_b') or any(event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE for event in events):
+            if input_manager.just_pressed('action_b') or (last_key is not None and last_key == pygame.K_SPACE):
                 s.is_fullscreen = False
             elif input_manager.just_pressed('left'):
                 s.current_img_index = (s.current_img_index - 1) % len(s.screenshots)
